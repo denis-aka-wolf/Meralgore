@@ -6,31 +6,15 @@ public class Revolver : Weapon
     LineRenderer lineRenderer;
 
     [Header("Animation")]
-    public float reloadStep = 1f;
-    public float shootStep = 1f;
     [SerializeField] float traceThinningStep = 0.001f;
-
-    [SerializeField] private float reloadRotationAngle = 15f;
-    
-    [SerializeField] private float shootRotationAngle = 20f;
-    [SerializeField] private float shootPositionOffset = 10f;
-
-    Quaternion shootRotation;
-    Vector3 shootPosition;
-
-    private Quaternion reloadRotation;
 
     [Header("Revolver")]
     [SerializeField] CameraController cameraController;
 
-    private Coroutine showTraceCoroutine;
-    private Coroutine reloadCoroutine;
-    private Coroutine shootCoroutine;
-
-
     [Header("Alternative Attack")]
     [SerializeField] GameObject coin;
     [SerializeField] private LayerMask coinLayer;
+
     [SerializeField] float coinThrowUpForce = 5f;
     [SerializeField] float coinThrowForwardForce = 7f;
     [SerializeField] float coinCastRange = 30f;
@@ -48,12 +32,6 @@ public class Revolver : Weapon
     {
         lineRenderer = GetComponent<LineRenderer>();
         enemiesBuffer = new Collider[maxColliders];
-
-        currentAmmo = maxAmmo;
-
-        reloadRotation = Quaternion.Euler(0, 270, reloadRotationAngle);
-        shootRotation = Quaternion.Euler(0, 270, shootRotationAngle);
-        shootPosition = new Vector3(transform.localPosition.x, transform.localPosition.y, -shootPositionOffset);
     }
 
     public override void StartAttack()
@@ -74,26 +52,33 @@ public class Revolver : Weapon
 
     public override void Attack()
     {
-        shootCoroutine = StartCoroutine(ShootAnimation());
+        if (currentAmmo <= 0)
+        {
+            reloadCoroutine = StartCoroutine(ReloadProcess());
+            return;
+        }
+
+        animator.ResetTrigger("Shoot");
+        animator.SetTrigger("Shoot");
 
         // ТОЧКА В ЦЕНТРЕ КАМЕРЫ
         Ray cameraRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         Vector3 endPoint;
 
         // МЕХАНИКА БАЗОВОГО ВЫСТРЕЛА
-        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hit, range)) // при попадании рейкастом
+        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hit, CurrentStats.Range)) // при попадании рейкастом
         {
             endPoint = hit.point; // точка попадания
 
             //нанесение урона по объекту если у него есть здоровье
             if (hit.collider.TryGetComponent(out Health health))
             {
-                health.Damage(damage);
+                health.Damage(CurrentStats.Damage);
             }
             else if (hit.transform.parent != null && hit.transform.parent.TryGetComponent(out health))
             {
                 // Замена GetComponentInParent на явный шаг вверх (работает быстрее)
-                health.Damage(damage);
+                health.Damage(CurrentStats.Damage);
             }
 
             SpawnBulletHole(hit.normal, endPoint, hit.transform);
@@ -102,7 +87,7 @@ public class Revolver : Weapon
         }
         else
         {
-            endPoint = cameraRay.GetPoint(range);
+            endPoint = cameraRay.GetPoint(CurrentStats.Range);
             StartCoroutine(ShowTrace(firePoint.position, endPoint));
         }
 
@@ -116,14 +101,17 @@ public class Revolver : Weapon
                 StartCoroutine(ShowTrace(firePoint.position, sphereHit.transform.position, target.position));
 
                 if (target.TryGetComponent(out Health health))
-                    health.Damage(damage * 1.5f);
+                    health.Damage(CurrentStats.Damage * 1.5f);
             }
 
             Destroy(sphereHit.transform.gameObject);
 
         }
         currentAmmo -= 1;
+
         ResetLastAttack();
+
+        
     }
 
     public override void StartAltAttack()
@@ -137,8 +125,6 @@ public class Revolver : Weapon
 
         //рассчет силы броска монеты с учетом направления камеры
         Vector3 throwForce = Vector3.up * coinThrowUpForce + mainCamera.transform.forward * coinThrowForwardForce;
-
-
 
         //применение рассчитаной силы к монетке
         coinRb.AddForce(throwForce + (playerVelocity / 2), ForceMode.Impulse);
@@ -173,54 +159,39 @@ public class Revolver : Weapon
     public override void Reload()
     {
         if (!reload)
-            reloadCoroutine = StartCoroutine(ReloadAnimation());
+            reloadCoroutine = StartCoroutine(ReloadProcess());
     }
 
-    private IEnumerator ReloadAnimation() // анимация перезарядки
+    private IEnumerator ReloadProcess() // анимация перезарядки
     {
-        Quaternion startRotation = transform.localRotation;
+        reload = true;
+        animator.SetTrigger("Reload");
 
-        reload = true; // помечается для блокировки выстрела
+        // ждем окончания текущего кадра, чтобы Animator переключился на состояние перезарядки
+        yield return null;
 
-        while (Quaternion.Angle(transform.localRotation, reloadRotation) > 0.1f) // пока истинный поворот не приблизился к конечной точке
+        // счетчик превышения времени ожидания анимации
+        float timeout = 0f;
+
+        // данный цикл работает пока не включится анимация, и для защиты от вечного зависания накручивает timeout
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Attack") && timeout < 1.0f)
         {
-            transform.localRotation = Quaternion.Lerp(transform.localRotation, reloadRotation, Time.deltaTime * reloadStep);
+            timeout += Time.deltaTime;
             yield return null;
         }
 
-        while (Quaternion.Angle(transform.localRotation, startRotation) > 0.1f) // пока истинный поворот не приблизился к конечной точке
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0); //берем информацию о текущем состоянии на слое 0
+        float animationLength = stateInfo.length; // берем длину анимации в секундах
+        yield return new WaitForSeconds(animationLength - 0.001f); // делаем паузу на время анимации, чтобы дать ей завершиться
+
+        if (CurrentStats is IAmmoStats ammo)
         {
-            transform.localRotation = Quaternion.Slerp(transform.localRotation, startRotation, Time.deltaTime * reloadStep);
-            yield return null;
+            currentAmmo = ammo.MaxAmmo;
         }
 
-        currentAmmo = maxAmmo;
         reload = false;
-
-        yield break;
     }
 
-    private IEnumerator ShootAnimation() // анимация выстрела
-    {
-        Quaternion startRotation = transform.localRotation;
-        Vector3 startPosition = transform.localPosition;
-
-        while (Quaternion.Angle(transform.localRotation, shootRotation) > 0.1f) // пока истинный поворот не приблизился к конечной точке
-        {
-            transform.localRotation = Quaternion.Lerp(transform.localRotation, shootRotation, Time.deltaTime * shootStep);
-            transform.localPosition = Vector3.Lerp(transform.localPosition, shootPosition, Time.deltaTime * shootStep);
-            yield return null;
-        }
-
-        while (Quaternion.Angle(transform.localRotation, startRotation) > 0.1f) // пока истинный поворот не приблизился к конечной точке
-        {
-            transform.localRotation = Quaternion.Slerp(transform.localRotation, startRotation, Time.deltaTime * (shootStep / 1.5f));
-            transform.localPosition = Vector3.Lerp(transform.localPosition, startPosition, Time.deltaTime * shootStep);
-            yield return null;
-        }
-
-        yield break;
-    }
     private IEnumerator ShowTrace(params Vector3[] points) // анимация трассировки выстрела
     {
         lineRenderer.enabled = true;

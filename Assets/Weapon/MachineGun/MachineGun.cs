@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 
 public class MachineGun : Weapon
 {
@@ -7,14 +9,9 @@ public class MachineGun : Weapon
     [SerializeField] GameObject bullet;
     [SerializeField] float shootForce;
 
-    void Start()
-    {
-        
-    }
-
     void Update()
     {
-        if (CanAttack && attack)
+        if (CanAttack && !reload && attack)
         {
             Attack();
         }
@@ -22,14 +19,23 @@ public class MachineGun : Weapon
 
     public override void Attack()
     {
+        if (currentAmmo <= 0)
+        {
+            reloadCoroutine = StartCoroutine(ReloadProcess());
+            return;
+        }
+
+        animator.ResetTrigger("Shoot");
+        animator.SetTrigger("Shoot");
+
         // луч по камере
         Ray cameraRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         Vector3 endPoint; // точка выстрела
 
-        if (Physics.Raycast(cameraRay, out RaycastHit hit, range))
+        if (Physics.Raycast(cameraRay, out RaycastHit hit, CurrentStats.Range))
             endPoint = hit.point;
         else 
-            endPoint = cameraRay.GetPoint(75);
+            endPoint = cameraRay.GetPoint(CurrentStats.Range);
         
         // направление из дула к центру камеры
         Vector3 directionWithoutSpread = endPoint - firePoint.position;
@@ -43,13 +49,49 @@ public class MachineGun : Weapon
 
         // спавним пулю и присваиваем в переменную
         GameObject currentBullet = Instantiate(bullet, firePoint.position, Quaternion.identity);
-
+       
         currentBullet.transform.forward = directionWithSpread.normalized;
-
         currentBullet.GetComponent<Rigidbody>().AddForce(directionWithSpread.normalized * shootForce, ForceMode.Impulse);
 
+        // получаем скрипт пули и передаем урон
+        if (currentBullet.TryGetComponent(out Bullet bulletScript))
+        {
+            bulletScript.Init(CurrentStats.Damage);
+        }
+        
+        currentAmmo--;
+        
         ResetLastAttack();
     }
+    public override void Reload() 
+    {
+        if (!reload)
+            reloadCoroutine = StartCoroutine(ReloadProcess());
+    }
 
+    private IEnumerator ReloadProcess() // анимация перезарядки
+    {
+        reload = true;
+        animator.SetTrigger("Reload");
 
+        // ждем окончания текущего кадра, чтобы Animator переключился на состояние перезарядки
+        yield return null;
+
+        // счетчик превышения времени ожидания анимации
+        float timeout = 0f;
+
+        // данный цикл работает пока не включится анимация, и для защиты от вечного зависания накручивает timeout
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Attack") && timeout < 1.0f)
+        {
+            timeout += Time.deltaTime;
+            yield return null;
+        }
+
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0); //берем информацию о текущем состоянии на слое 0
+        float animationLength = stateInfo.length; // берем длину анимации в секундах
+        yield return new WaitForSeconds(animationLength - 0.001f); // делаем паузу на время анимации, чтобы дать ей завершиться
+
+        ResetAmmo();
+        reload = false;
+    }
 }

@@ -2,24 +2,25 @@ using UnityEngine;
 
 public abstract class Weapon : MonoBehaviour
 {
-    [SerializeField] public LayerMask enemyLayer;
-    [Header("Weapon Settings")]
-    public float range = 10f;
-    public float damage = 15f;
-    public float cooldown = 0.5f;
+    protected Animator animator;
+    public Camera mainCamera;
+
+    [Header("Data System")]
+    [SerializeField] private BaseWeaponData baseStatsAsset;
+    public IWeaponStats CurrentStats { get; private set; }
 
     [Header("Ammo")]
-    public int maxAmmo;
     public int currentAmmo;
     public bool reload = false;
 
     [Header("References")]
     [SerializeField] protected Transform firePoint;
+    [SerializeField] public LayerMask enemyLayer;
 
     [Header("Visual")]
     [SerializeField] private GameObject bulletHoleDecalPrefab;
 
-    public Camera mainCamera;
+    protected Coroutine reloadCoroutine;
 
     protected float nextAttackTime;
     public bool attack;
@@ -28,25 +29,43 @@ public abstract class Weapon : MonoBehaviour
 
     void Awake()
     {
+        animator = GetComponent<Animator>();
         mainCamera = Camera.main;
+        ResetStats();
+    }
+    public void ResetStats() 
+    { 
+        CurrentStats = baseStatsAsset;
+        ResetAmmo();
     }
 
-    public virtual void StartAttack()
+    private void OnEnable() //всегда при активации оружия, сбрасываем старые триггеры и запускаем анимацию экипировки
     {
-        
-        Debug.Log("StartAttack");
-        attack = true;
+        ResetAllTriggers();
+        animator.SetTrigger("Equip");
     }
 
-    public virtual void EndAttack()
+    public void ResetAllTriggers() //сбрасывает любые триггеры в Animator
     {
-        Debug.Log("EndAttack");
-        attack = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == AnimatorControllerParameterType.Trigger)
+                animator.ResetTrigger(parameter.name);
+        }
+    }
+    protected void ResetLastAttack()
+    {
+        nextAttackTime = Time.time + CurrentStats.Cooldown;
     }
 
-    public virtual void StartAltAttack()
+    protected void ResetAmmo()
     {
-        
+        // если оружие поддерживает интерфейс стрелкового оружия, то 
+        if (CurrentStats is IAmmoStats ammo)
+        {
+            // берем максимальный боезапас в качество текущего
+            currentAmmo = ammo.MaxAmmo;
+        }
     }
 
     public void SpawnBulletHole(Vector3 normal, Vector3 point, Transform parent)
@@ -65,12 +84,9 @@ public abstract class Weapon : MonoBehaviour
         Destroy(decal, 10f); //самоуничтожение
     }
 
+    public virtual void StartAttack() { attack = true; }
+    public virtual void EndAttack() { attack = false; }
+    public virtual void StartAltAttack() { }
     public virtual void Attack() { }
-    public virtual void Reload() { }
-
-    protected void ResetLastAttack()
-    {
-        nextAttackTime = Time.time + cooldown;
-    }
-    
+    public virtual void Reload() { }    
 }
