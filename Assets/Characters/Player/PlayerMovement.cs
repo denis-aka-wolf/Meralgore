@@ -208,6 +208,13 @@ public class PlayerMovement : MonoBehaviour
         _currentSpeed = runSpeed;
     }
 
+    public void SetRunSpeed(float speed)
+    {
+        runSpeed = Mathf.Max(0f, speed);
+        if (isRunning && !isCrouching && !isSliding)
+            _currentSpeed = runSpeed;
+    }
+
     void GetToGround()
     {
         if (!IsGrounded() && CanGetToGround())

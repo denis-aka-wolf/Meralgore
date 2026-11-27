@@ -21,6 +21,7 @@ public abstract class Weapon : MonoBehaviour
     [SerializeField] private GameObject bulletHoleDecalPrefab;
 
     protected Coroutine reloadCoroutine;
+    private MeralgorePlayerState _playerState;
 
     protected float nextAttackTime;
     public bool attack;
@@ -31,6 +32,7 @@ public abstract class Weapon : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         mainCamera = Camera.main;
+        _playerState = GetComponentInParent<MeralgorePlayerState>();
         ResetStats();
     }
     public void ResetStats() 
@@ -55,7 +57,8 @@ public abstract class Weapon : MonoBehaviour
     }
     protected void ResetLastAttack()
     {
-        nextAttackTime = Time.time + CurrentStats.Cooldown;
+        float cooldownMultiplier = _playerState != null ? _playerState.CooldownMultiplier : 1f;
+        nextAttackTime = Time.time + CurrentStats.Cooldown * cooldownMultiplier;
     }
 
     protected void ResetAmmo()

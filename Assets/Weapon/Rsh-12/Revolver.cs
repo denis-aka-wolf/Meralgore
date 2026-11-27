@@ -62,11 +62,22 @@ public class Revolver : Weapon
         animator.SetTrigger("Shoot");
 
         // ТОЧКА В ЦЕНТРЕ КАМЕРЫ
-        Ray cameraRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Vector3 shotDirection = mainCamera.transform.forward;
+        MeralgorePlayerState playerState = GetComponentInParent<MeralgorePlayerState>();
+        if (CurrentStats is IAmmoStats ammoStats)
+        {
+            float spread = ammoStats.Spread;
+            if (playerState != null)
+                spread *= playerState.SpreadMultiplier;
+            if (spread > 0f)
+                shotDirection = (shotDirection + UnityEngine.Random.insideUnitSphere * spread).normalized;
+        }
+
+        Ray cameraRay = new Ray(mainCamera.transform.position, shotDirection);
         Vector3 endPoint;
 
         // МЕХАНИКА БАЗОВОГО ВЫСТРЕЛА
-        if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hit, CurrentStats.Range)) // при попадании рейкастом
+        if (Physics.Raycast(cameraRay, out RaycastHit hit, CurrentStats.Range)) // при попадании рейкастом
         {
             endPoint = hit.point; // точка попадания
 
