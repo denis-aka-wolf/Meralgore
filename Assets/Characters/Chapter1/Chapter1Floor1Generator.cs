@@ -511,6 +511,14 @@ public class Chapter1Floor1Generator : MonoBehaviour
         CreateCube(link.transform, "Walkway", Vector3.zero,
             new Vector3(DoorWidth, 0.6f, connectorLength), routeMaterial);
 
+        // Guardrails keep the player on the connector while crossing the gap between territories.
+        for (int side = -1; side <= 1; side += 2)
+        {
+            CreateCube(link.transform, side < 0 ? "Walkway_Guardrail_Left" : "Walkway_Guardrail_Right",
+                new Vector3(side * (DoorWidth * 0.5f + 0.8f), 3.5f, 0f),
+                new Vector3(1.6f, 7f, connectorLength), signalMaterial);
+        }
+
         GameObject gateObject = CreateCube(link.transform, "Combat_Gate",
             new Vector3(0f, 5f, 0f), new Vector3(DoorWidth, 10f, 1.2f), signalMaterial);
         gateObject.SetActive(false);
