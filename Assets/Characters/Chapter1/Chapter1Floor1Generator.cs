@@ -152,7 +152,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Transform room, FloorMapNode node, Material structure, Material props, System.Random random)
     {
         // Keep the central combat lane readable and mostly unobstructed.
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 4; i++)
         {
             float x = (float)(random.NextDouble() * 112f - 56f);
             float z = (float)(random.NextDouble() * 92f - 46f);
@@ -239,7 +239,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Transform room, FloorMapNode node, Material walls, Material structure, System.Random random)
     {
         // Dense outer skyline: multiple layers of colossal structures, well beyond the arena.
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 6; i++)
         {
             float angle = i * 12f + random.Next(-7, 8);
             float radius = random.Next(185, 390);
@@ -257,7 +257,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Colossal vertical shafts and diagonal braces fill the gaps between distant towers.
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             float angle = i * 30f + random.Next(-10, 11);
             float radius = random.Next(230, 360);
@@ -272,7 +272,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Long elevated bridges cross the view at several depths and heights.
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             float angle = i * 20f + random.Next(-8, 9);
             float radius = random.Next(210, 330);
@@ -288,16 +288,15 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Overhead megastructure: layered ceiling trusses, suspended decks and machinery.
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             float z = -105f + i * 35f;
             GameObject beam = CreateCube(room, $"Overhead_Primary_Truss_{i:00}",
                 new Vector3(random.Next(-25, 26), 105f + random.Next(-8, 9), z),
                 new Vector3(210f, random.Next(7, 15), random.Next(8, 18)), walls);
-            DisableCollider(beam);
         }
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
         {
             float x = random.Next(-105, 106);
             float z = random.Next(-105, 106);
@@ -306,12 +305,10 @@ public class Chapter1Floor1Generator : MonoBehaviour
                 new Vector3(x, y, z),
                 new Vector3(random.Next(18, 48), random.Next(8, 22), random.Next(18, 55)), structure);
             suspended.transform.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
-            DisableCollider(suspended);
 
             GameObject hanger = CreateCube(room, $"Overhead_Hanger_{i:00}",
                 new Vector3(x, y - 22f, z),
                 new Vector3(3f, 42f, 3f), walls);
-            DisableCollider(hanger);
         }
 
         // A distant upper level frames the arena without sealing its sightlines.
