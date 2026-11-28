@@ -30,13 +30,13 @@ public class MeralgoreEnemyController : MonoBehaviour
 
     public bool IsBoss => _isBoss;
 
-    public void Configure(FloorRunController runController, bool isBoss, int normalEnemyHealth)
+    public void Configure(FloorRunController runController, bool isBoss, int normalEnemyHealth, int formationIndex = 0)
     {
         _runController = runController;
         _target = runController.PlayerState;
         _isBoss = isBoss;
-        _formationAngle = Mathf.Abs(GetInstanceID() % 360) * Mathf.Deg2Rad;
-        _engagementRadius = 1.7f + Mathf.Abs(GetInstanceID() % 3) * 0.35f;
+        _formationAngle = Mathf.Repeat(formationIndex * 137.5f, 360f) * Mathf.Deg2Rad;
+        _engagementRadius = 1.7f + (formationIndex % 3) * 0.35f;
         if (!ActiveEnemies.Contains(this))
             ActiveEnemies.Add(this);
         _characterController = GetComponent<CharacterController>();
