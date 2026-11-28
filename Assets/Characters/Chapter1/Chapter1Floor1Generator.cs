@@ -227,15 +227,21 @@ public class Chapter1Floor1Generator : MonoBehaviour
                 new Vector3(x, height * 0.5f, z),
                 new Vector3(width, height, width * random.Next(1, 3)), i % 3 == 0 ? walls : structure);
             tower.transform.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
+            Collider towerCollider = tower.GetComponent<Collider>();
+            if (towerCollider != null) towerCollider.enabled = false;
         }
 
         // Huge suspended spans visible above and beyond the playable battlefield.
-        CreateCube(room, "Distant_Horizontal_Span",
+        GameObject span = CreateCube(room, "Distant_Horizontal_Span",
             new Vector3(random.Next(-35, 36), 105f, 145f),
             new Vector3(190f, 12f, 18f), walls);
-        CreateCube(room, "Distant_Vertical_Shaft",
+        GameObject shaft = CreateCube(room, "Distant_Vertical_Shaft",
             new Vector3(random.Next(-35, 36), 90f, -145f),
             new Vector3(24f, 180f, 24f), structure);
+        Collider spanCollider = span.GetComponent<Collider>();
+        Collider shaftCollider = shaft.GetComponent<Collider>();
+        if (spanCollider != null) spanCollider.enabled = false;
+        if (shaftCollider != null) shaftCollider.enabled = false;
     }
 
     private void CreateTerritoryIdentity(Transform room, FloorMapNode node, Material route, Material signal)
