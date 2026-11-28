@@ -12,7 +12,6 @@ public class Chapter1Floor1Generator : MonoBehaviour
     private const float LocationDepth = 180f;
     private const float LaneSpacing = 190f;
     private const float RowSpacing = 180f;
-    private const float DoorWidth = 190f;
 
     private readonly List<Material> _materials = new List<Material>();
     private readonly List<FloorMapRoom> _rooms = new List<FloorMapRoom>();
@@ -314,153 +313,6 @@ public class Chapter1Floor1Generator : MonoBehaviour
             node.Type == FloorRoomType.Boss ? signal : route);
     }
 
-    private static List<Opening> GetOpenings(FloorMapNode node, List<FloorMapNode> nodes)
-    {
-        var openings = new List<Opening>();
-        foreach (int connectedId in node.Connections)
-        {
-            FloorMapNode connected = nodes[connectedId];
-            float dx = (connected.Lane - node.Lane) * LaneSpacing;
-            float dz = (connected.Row - node.Row) * RowSpacing;
-            float xTime = Mathf.Abs(dx) < 0.001f ? float.PositiveInfinity : (LocationWidth * 0.5f) / Mathf.Abs(dx);
-            float zTime = Mathf.Abs(dz) < 0.001f ? float.PositiveInfinity : (LocationDepth * 0.5f) / Mathf.Abs(dz);
-
-            if (xTime < zTime)
-            {
-                openings.Add(new Opening(
-                    dx < 0f ? OpeningSide.West : OpeningSide.East,
-                    Mathf.Clamp(dz * xTime, -LocationDepth * 0.5f + DoorWidth, LocationDepth * 0.5f - DoorWidth)));
-            }
-            else
-            {
-                openings.Add(new Opening(
-                    dz < 0f ? OpeningSide.South : OpeningSide.North,
-                    Mathf.Clamp(dx * zTime, -LocationWidth * 0.5f + DoorWidth, LocationWidth * 0.5f - DoorWidth)));
-            }
-        }
-
-        return openings;
-    }
-
-    private void CreateWalls(Transform room, List<Opening> openings, Material material)
-    {
-        CreateWallSegments(room, OpeningSide.North, LocationWidth, openings, material);
-        CreateWallSegments(room, OpeningSide.South, LocationWidth, openings, material);
-        CreateWallSegments(room, OpeningSide.East, LocationDepth, openings, material);
-        CreateWallSegments(room, OpeningSide.West, LocationDepth, openings, material);
-    }
-
-    private void CreateWallSegments(
-        Transform room,
-        OpeningSide side,
-        float wallLength,
-        List<Opening> openings,
-        Material material)
-    {
-        var centers = new List<float>();
-        foreach (Opening opening in openings)
-        {
-            if (opening.Side == side)
-                centers.Add(opening.Offset);
-        }
-        centers.Sort();
-
-        float cursor = -wallLength * 0.5f;
-        float wallPosition = side == OpeningSide.North
-            ? LocationDepth * 0.5f
-            : side == OpeningSide.South
-                ? -LocationDepth * 0.5f
-                : side == OpeningSide.East
-                    ? LocationWidth * 0.5f
-                    : -LocationWidth * 0.5f;
-
-        foreach (float center in centers)
-        {
-            float openingStart = Mathf.Max(cursor, center - DoorWidth * 0.5f);
-            CreateWallSegment(room, side, cursor, openingStart, wallPosition, material);
-            cursor = Mathf.Max(cursor, center + DoorWidth * 0.5f);
-        }
-
-        CreateWallSegment(room, side, cursor, wallLength * 0.5f, wallPosition, material);
-    }
-
-    private void CreateWallSegment(
-        Transform room,
-        OpeningSide side,
-        float start,
-        float end,
-        float wallPosition,
-        Material material)
-    {
-        float length = end - start;
-        if (length <= 0.1f)
-            return;
-
-        Vector3 position;
-        Vector3 scale;
-        if (side == OpeningSide.North || side == OpeningSide.South)
-        {
-            position = new Vector3((start + end) * 0.5f, 31f, wallPosition);
-            scale = new Vector3(length, 62f, 6f);
-        }
-        else
-        {
-            position = new Vector3(wallPosition, 31f, (start + end) * 0.5f);
-            scale = new Vector3(6f, 62f, length);
-        }
-
-        CreateCube(room, $"Boundary_{side}_{start:F0}", position, scale, material);
-    }
-
-    private void CreateSupportColumns(Transform room, Material material)
-    {
-        for (int x = -1; x <= 1; x += 2)
-        {
-            for (int z = -1; z <= 1; z += 2)
-            {
-                CreateCube(room, $"Support_{x}_{z}", new Vector3(x * 29f, 4f, z * 20f),
-                    new Vector3(2.5f, 8f, 2.5f), material);
-            }
-        }
-    }
-
-    private void CreateUpperLevel(Transform room, Material material)
-    {
-        for (int side = -1; side <= 1; side += 2)
-        {
-            float x = side * 27f;
-            CreateCube(room, side < 0 ? "West_Upper_Platform" : "East_Upper_Platform",
-                new Vector3(x, 8.35f, 0f),
-                new Vector3(12f, 0.7f, LocationDepth - 6f), material);
-
-            CreateCube(room, side < 0 ? "West_Upper_Rail" : "East_Upper_Rail",
-                new Vector3(side * 20.5f, 10f, 0f),
-                new Vector3(0.35f, 2.6f, LocationDepth - 6f), material);
-        }
-
-        var ramp = CreateCube(room, "Upper_Ramp", new Vector3(-23f, 4.1f, -5f),
-            new Vector3(6f, 0.6f, 28f), material);
-        ramp.transform.localRotation = Quaternion.Euler(-17f, 0f, 0f);
-    }
-
-    private void CreateRoomDetails(Transform room, FloorMapNode node, Material material, System.Random random)
-    {
-        if (node.Type == FloorRoomType.Boss)
-        {
-            CreateCube(room, "Boss_Platform", new Vector3(0f, 0.25f, 5f),
-                new Vector3(18f, 0.5f, 18f), CreateMaterial("Boss_Platform", MeralgorePalette.Boss));
-        }
-
-        for (int i = 0; i < 3; i++)
-        {
-            float x = random.Next(0, 2) == 0 ? -1f : 1f;
-            float z = random.Next(-16, 17);
-            float size = random.Next(3, 7);
-            CreateCube(room, $"Industrial_Block_{i}", new Vector3(x * random.Next(16, 25), size, z),
-                new Vector3(size, size * 2f, size), material);
-        }
-    }
-
     private void CreateLink(
         Vector3 from,
         Vector3 to,
@@ -554,23 +406,4 @@ public class Chapter1Floor1Generator : MonoBehaviour
         return cube;
     }
 
-    private enum OpeningSide
-    {
-        North,
-        South,
-        East,
-        West
-    }
-
-    private readonly struct Opening
-    {
-        public readonly OpeningSide Side;
-        public readonly float Offset;
-
-        public Opening(OpeningSide side, float offset)
-        {
-            Side = side;
-            Offset = offset;
-        }
-    }
 }
