@@ -1,16 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MeralgoreRuntimeUI : MonoBehaviour
 {
-    private const int VisibleLogCount = 5;
-    private const float LogLifetime = 8f;
-    private const float LogFadeDuration = 3f;
+    private const int VisibleLogCount = 4;
+    private const float LogLifetime = 10f;
+    private const float LogFadeDuration = 2.5f;
 
     private readonly List<LogEntry> _logs = new List<LogEntry>();
-    private readonly Dictionary<int, UnityEngine.UI.Image> _roomMarkers =
-        new Dictionary<int, UnityEngine.UI.Image>();
+    private readonly Dictionary<int, Image> _roomMarkers = new Dictionary<int, Image>();
     private readonly Dictionary<int, FloorMapNode> _nodesById = new Dictionary<int, FloorMapNode>();
 
     private FloorRunController _runController;
@@ -21,28 +21,41 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private GameObject _pausePanel;
     private GameObject _endPanel;
     private TMPro.TextMeshProUGUI _startPrompt;
+    private TMPro.TextMeshProUGUI _endText;
     private CanvasGroup _transition;
     private Coroutine _transitionRoutine;
-    private TMPro.TextMeshProUGUI _healthText;
-    private TMPro.TextMeshProUGUI _weaponText;
-    private TMPro.TextMeshProUGUI _currencyText;
-    private TMPro.TextMeshProUGUI _roomText;
-    private TMPro.TextMeshProUGUI _seedText;
-    private TMPro.TextMeshProUGUI _itemText;
-    private TMPro.TextMeshProUGUI _endText;
-    private readonly TMPro.TextMeshProUGUI[] _logLines = new TMPro.TextMeshProUGUI[VisibleLogCount];
+
+    private TMPro.TextMeshProUGUI _healthValue;
+    private TMPro.TextMeshProUGUI _healthState;
+    private TMPro.TextMeshProUGUI _currencyValue;
+    private TMPro.TextMeshProUGUI _roomValue;
+    private TMPro.TextMeshProUGUI _sectorValue;
+    private TMPro.TextMeshProUGUI _weaponName;
+    private TMPro.TextMeshProUGUI _ammoValue;
+    private TMPro.TextMeshProUGUI _weaponSlots;
+    private TMPro.TextMeshProUGUI _itemValue;
+    private TMPro.TextMeshProUGUI _companionState;
+    private TMPro.TextMeshProUGUI _companionDetail;
+    private TMPro.TextMeshProUGUI[] _logLines = new TMPro.TextMeshProUGUI[VisibleLogCount];
+    private Image _healthFill;
     private int _currentRoomId;
     private int _seed;
+    private float _nextRefreshTime;
     private static Sprite _whiteSprite;
 
-    public void Initialize(
-        FloorRunController runController,
-        IReadOnlyList<FloorMapNode> nodes,
-        int seed)
+    private static readonly Color PanelColor = new Color32(16, 18, 18, 224);
+    private static readonly Color PanelSoft = new Color32(25, 29, 28, 205);
+    private static readonly Color LineColor = new Color32(69, 74, 71, 220);
+    private static readonly Color MutedText = new Color32(139, 151, 145, 255);
+    private static readonly Color Teal = new Color32(77, 122, 120, 255);
+    private static readonly Color Amber = new Color32(179, 115, 20, 255);
+
+    public void Initialize(FloorRunController runController, IReadOnlyList<FloorMapNode> nodes, int seed)
     {
         _runController = runController;
         _playerState = runController.PlayerState;
         _seed = seed;
+
         foreach (FloorMapNode node in nodes)
             _nodesById[node.Id] = node;
 
@@ -54,6 +67,25 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         BuildCanvas(nodes);
         SetCurrentRoom(0);
+
+        if (_playerState != null)
+            _playerState.Changed += OnPlayerStateChanged;
+
+        AddLog("OPERATOR LINK ESTABLISHED");
+        AddLog("NAVIGATION GRAPH SYNCHRONIZED");
+        AddLog("PRIMARY SYSTEMS NOMINAL");
+        Refresh();
+    }
+
+    private void OnDestroy()
+    {
+        if (_playerState != null)
+            _playerState.Changed -= OnPlayerStateChanged;
+    }
+
+    private void OnPlayerStateChanged()
+    {
+        Refresh();
     }
 
     private void Update()
@@ -61,16 +93,22 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         if (_startPrompt != null)
         {
             Color color = _startPrompt.color;
-            color.a = 0.75f + Mathf.Sin(Time.unscaledTime * Mathf.PI * 1.25f) * 0.25f;
+            color.a = 0.72f + Mathf.Sin(Time.unscaledTime * 2.2f) * 0.22f;
             _startPrompt.color = color;
+        }
+
+        if (Time.unscaledTime >= _nextRefreshTime)
+        {
+            _nextRefreshTime = Time.unscaledTime + 0.12f;
+            Refresh();
         }
     }
 
     public void SetCurrentRoom(int roomId)
     {
         _currentRoomId = roomId;
-        if (_roomText != null)
-            _roomText.text = $"ПРОСТРАНСТВО / {roomId + 1:00}";
+        if (_roomValue != null)
+            _roomValue.text = $"SPACE {roomId + 1:00}";
         RefreshMap();
     }
 
@@ -85,66 +123,80 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         _hud.SetActive(state == MeralgoreRunState.Playing || state == MeralgoreRunState.Paused);
 
         if (state == MeralgoreRunState.Won)
-            _endText.text = "ПОБЕДА\nБОСС ПОВЕРЖЕН\nENTER — НОВЫЙ ЗАБЕГ";
+            _endText.text = "RUN COMPLETE\nBOSS NEUTRALIZED\n\nENTER  /  NEW RUN";
         else if (state == MeralgoreRunState.Lost)
-            _endText.text = "ЗАБЕГ ЗАВЕРШЁН\nENTER — ПОПРОБОВАТЬ СНОВА";
+            _endText.text = "OPERATOR TERMINATED\nRUN DATA SEALED\n\nENTER  /  RETRY";
+
         if (_transition != null)
         {
             if (_transitionRoutine != null)
                 StopCoroutine(_transitionRoutine);
             _transitionRoutine = StartCoroutine(FadeTransition());
         }
+
         Refresh();
     }
 
     public void AddLog(string message)
     {
         _logs.Add(new LogEntry($"// {message}", Time.unscaledTime));
-        if (_logs.Count > 20)
+        if (_logs.Count > 24)
             _logs.RemoveAt(0);
         RefreshLogs();
     }
 
     public void Refresh()
     {
-        if (_playerState == null || _healthText == null)
+        if (_playerState == null || _healthValue == null || _runController == null)
             return;
 
-        _healthText.text = $"ЗДОРОВЬЕ  {Mathf.CeilToInt(_playerState.CurrentHealth):000}";
-        _currencyText.text = $"ВАЛЮТА  {_playerState.Currency:000}";
-        _roomText.text = _runController.GetRoomLabel();
-        _seedText.text = $"SEED  {_seed}";
+        float health = Mathf.Clamp(_playerState.CurrentHealth, 0f, _playerState.MaxHealth);
+        float healthRatio = _playerState.MaxHealth > 0f ? health / _playerState.MaxHealth : 0f;
+        _healthValue.text = Mathf.CeilToInt(health).ToString("000");
+        _healthState.text = healthRatio <= 0.25f ? "CRITICAL" : healthRatio <= 0.55f ? "DEGRADED" : "NOMINAL";
+        _healthState.color = healthRatio <= 0.25f ? MeralgorePalette.Boss : healthRatio <= 0.55f ? Amber : Teal;
+        if (_healthFill != null)
+            _healthFill.fillAmount = healthRatio;
+
+        _currencyValue.text = _playerState.Currency.ToString("000");
+        _roomValue.text = _runController.GetRoomLabel();
+        _sectorValue.text = $"CHAPTER 01  /  FLOOR 01     //     SEED {_seed}";
 
         WeaponSwitcher weaponSwitcher = _runController.WeaponSwitcher;
         Weapon weapon = weaponSwitcher != null ? weaponSwitcher.weapon : null;
         if (weaponSwitcher != null)
         {
-            string ammo = weapon != null && weapon.CurrentStats is IAmmoStats
-                ? $" / {weapon.currentAmmo:00}"
-                : string.Empty;
+            _weaponName.text = weapon != null
+                ? weapon.GetType().Name.Replace("Weapon", "").Replace("_", " ").ToUpperInvariant()
+                : "NO WEAPON EQUIPPED";
+
+            IAmmoStats ammoStats = weapon != null ? weapon.CurrentStats as IAmmoStats : null;
+            _ammoValue.text = ammoStats != null
+                ? $"{weapon.currentAmmo:00}  <color=#8B9791>/</color>  RESERVE --"
+                : "--  <color=#8B9791>/</color>  NO AMMO DATA";
+
             var slots = new string[2];
             for (int i = 0; i < slots.Length; i++)
             {
                 Weapon slotWeapon = weaponSwitcher.GetWeaponForSlot(i);
-                string slotName = slotWeapon == null
-                    ? "--"
-                    : slotWeapon.GetType().Name.ToUpperInvariant();
+                string slotName = slotWeapon == null ? "EMPTY" :
+                    slotWeapon.GetType().Name.Replace("Weapon", "").ToUpperInvariant();
                 bool active = weapon != null && weaponSwitcher.CurrentSlot == i;
-                slots[i] = $"{(active ? "[" : string.Empty)}{i + 1}:{slotName}{(active ? "]" : string.Empty)}";
+                slots[i] = active ? $"<color=#B37314>[ {i + 1}  {slotName} ]</color>" : $"{i + 1}  {slotName}";
             }
-            _weaponText.text = $"{string.Join("  /  ", slots)}{ammo}";
+            _weaponSlots.text = string.Join("     ", slots);
         }
         else
         {
-            _weaponText.text = "ОРУЖИЕ  --";
+            _weaponName.text = "WEAPON SYSTEM OFFLINE";
+            _ammoValue.text = "--";
+            _weaponSlots.text = "01  EMPTY     02  EMPTY";
         }
 
         var itemNames = new List<string>();
         foreach (MeralgoreItemType item in _playerState.Items)
             itemNames.Add(GetItemName(item));
-        _itemText.text = itemNames.Count == 0
-            ? "ПРЕДМЕТЫ  --"
-            : "ПРЕДМЕТЫ  " + string.Join("  /  ", itemNames);
+        _itemValue.text = itemNames.Count == 0 ? "NO ACTIVE MODIFIERS" : string.Join("   /   ", itemNames);
 
         RefreshMap();
         RefreshLogs();
@@ -152,136 +204,213 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
     private void BuildCanvas(IReadOnlyList<FloorMapNode> nodes)
     {
-        var canvasObject = new GameObject("MeralgoreCanvas", typeof(RectTransform));
+        GameObject canvasObject = new GameObject("MeralgoreCanvas", typeof(RectTransform));
         canvasObject.transform.SetParent(transform, false);
-        UnityEngine.Canvas canvas = canvasObject.AddComponent<UnityEngine.Canvas>();
+
+        Canvas canvas = canvasObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 20;
-        UnityEngine.UI.CanvasScaler scaler = canvasObject.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
+        CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
-        canvasObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+        scaler.referencePixelsPerUnit = 100f;
+        canvasObject.AddComponent<GraphicRaycaster>();
 
-        _hud = CreatePanel(canvasObject.transform, "HUD", new Vector2(0f, 0f), new Vector2(1f, 1f),
-            new Vector2(0f, 0f), new Vector2(0f, 0f), new Color(0f, 0f, 0f, 0f));
+        _hud = CreatePanel(canvasObject.transform, "GameplayHUD", Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0f));
 
-        _healthText = CreateText(_hud.transform, "Health", new Vector2(0f, 1f), new Vector2(38f, -36f),
-            new Vector2(320f, 34f), 24f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left);
-        _currencyText = CreateText(_hud.transform, "Currency", new Vector2(0f, 1f), new Vector2(38f, -78f),
-            new Vector2(320f, 34f), 21f, MeralgorePalette.Signal, TMPro.TextAlignmentOptions.Left);
-        _roomText = CreateText(_hud.transform, "Room", new Vector2(0f, 0f), new Vector2(38f, 34f),
-            new Vector2(380f, 32f), 18f, MeralgorePalette.MainRoute, TMPro.TextAlignmentOptions.Left);
-        _seedText = CreateText(_hud.transform, "Seed", new Vector2(0f, 0f), new Vector2(38f, 8f),
-            new Vector2(380f, 28f), 16f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left);
-        _weaponText = CreateText(_hud.transform, "Weapon", new Vector2(1f, 0f), new Vector2(-38f, 66f),
-            new Vector2(430f, 34f), 20f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Right);
-        _itemText = CreateText(_hud.transform, "Items", new Vector2(1f, 0f), new Vector2(-38f, 34f),
-            new Vector2(650f, 28f), 15f, MeralgorePalette.Signal, TMPro.TextAlignmentOptions.Right);
+        BuildHeader(_hud.transform);
+        BuildOperatorPanel(_hud.transform);
+        BuildTacticalReticle(_hud.transform);
+        BuildArmamentPanel(_hud.transform);
+        BuildNavigationPanel(_hud.transform, nodes);
+        BuildCompanionPanel(_hud.transform);
+        BuildEventLog(_hud.transform);
+        BuildModifierStrip(_hud.transform);
 
-        CreateMapPanel(_hud.transform, nodes);
-        for (int i = 0; i < _logLines.Length; i++)
-        {
-            _logLines[i] = CreateText(_hud.transform, $"Log_{i}", new Vector2(0f, 0f),
-                new Vector2(38f, 130f + i * 27f), new Vector2(760f, 25f),
-                16f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left);
-            _logLines[i].alpha = 0f;
-        }
+        _titlePanel = CreatePanel(canvasObject.transform, "TitlePanel", Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, new Color(8f / 255f, 10f / 255f, 10f / 255f, 0.94f));
+        CreateText(_titlePanel.transform, "TitleEyebrow", new Vector2(0.5f, 0.68f), Vector2.zero,
+            new Vector2(900f, 28f), 14f, Teal, TMPro.TextAlignmentOptions.Center).text =
+            "M E G A S T R U C T U R E   /   COMBAT OPERATING SYSTEM";
+        CreateText(_titlePanel.transform, "Title", new Vector2(0.5f, 0.56f), Vector2.zero,
+            new Vector2(1000f, 120f), 76f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center).text = "METALGORE";
+        CreateText(_titlePanel.transform, "TitleSubhead", new Vector2(0.5f, 0.46f), Vector2.zero,
+            new Vector2(900f, 40f), 18f, Amber, TMPro.TextAlignmentOptions.Center).text =
+            "CHAPTER 01  //  FLOOR 01  //  DESCENT PROTOCOL";
+        CreateText(_titlePanel.transform, "Controls", new Vector2(0.5f, 0.32f), Vector2.zero,
+            new Vector2(1000f, 112f), 16f, MutedText, TMPro.TextAlignmentOptions.Center).text =
+            "WASD  MOVE     SPACE  JUMP     CTRL  CROUCH / SLIDE\n" +
+            "LMB  FIRE     RMB  ALT FIRE     R  RELOAD     1-2  WEAPON SLOT\n" +
+            "E  INTERACT     F  MELEE     ESC  SYSTEM MENU";
+        _startPrompt = CreateText(_titlePanel.transform, "StartPrompt", new Vector2(0.5f, 0.19f), Vector2.zero,
+            new Vector2(700f, 36f), 18f, Amber, TMPro.TextAlignmentOptions.Center);
+        _startPrompt.text = "PRESS ENTER TO INITIALIZE";
+        CreateText(_titlePanel.transform, "TitleFooter", new Vector2(0.5f, 0.09f), Vector2.zero,
+            new Vector2(800f, 24f), 12f, MutedText, TMPro.TextAlignmentOptions.Center).text =
+            "UNAUTHORIZED ACCESS  //  OPERATOR PROFILE NOT FOUND";
 
-        _titlePanel = CreatePanel(canvasObject.transform, "TitlePanel",
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            new Color(16f / 255f, 18f / 255f, 18f / 255f, 0.78f));
-        CreateText(_titlePanel.transform, "Title", new Vector2(0.5f, 0.6f), Vector2.zero,
-            new Vector2(900f, 120f), 64f, MeralgorePalette.Signal, TMPro.TextAlignmentOptions.Center)
-            .text = "METALGORE";
-        CreateText(_titlePanel.transform, "TitleSubhead", new Vector2(0.5f, 0.48f), Vector2.zero,
-            new Vector2(820f, 54f), 20f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center)
-            .text = "20 ОТКРЫТЫХ ПРОСТРАНСТВ / НАЙДИ ПУТЬ К БОССУ";
-        CreateText(_titlePanel.transform, "Controls", new Vector2(0.5f, 0.34f), Vector2.zero,
-            new Vector2(900f, 146f), 18f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center)
-            .text = "WASD — ДВИЖЕНИЕ    SPACE — ПРЫЖОК    CTRL — ПРИСЕСТЬ / СЛАЙД\nЛКМ — ОГОНЬ    ПКМ — ОСОБАЯ АТАКА    R — ПЕРЕЗАРЯДКА\nE — ВЗАИМОДЕЙСТВИЕ    F — УДАР    1–2 — СЛОТЫ ОРУЖИЯ\nESC — ПАУЗА";
-        _startPrompt = CreateText(_titlePanel.transform, "StartPrompt", new Vector2(0.5f, 0.2f), Vector2.zero,
-            new Vector2(700f, 40f), 19f, MeralgorePalette.Signal, TMPro.TextAlignmentOptions.Center);
-        _startPrompt.text = "Нажмите ENTER, чтобы начать";
-        CreateText(_titlePanel.transform, "TitleSeed", new Vector2(0.5f, 0.13f), Vector2.zero,
-            new Vector2(500f, 32f), 16f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center)
-            .text = $"SEED  {_seed}";
+        _pausePanel = CreatePanel(canvasObject.transform, "PausePanel", Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, new Color(8f / 255f, 10f / 255f, 10f / 255f, 0.92f));
+        CreateText(_pausePanel.transform, "PauseEyebrow", new Vector2(0.5f, 0.59f), Vector2.zero,
+            new Vector2(700f, 28f), 14f, Amber, TMPro.TextAlignmentOptions.Center).text = "SYSTEM SUSPENDED";
+        CreateText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(700f, 90f), 48f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center).text = "PAUSED";
+        CreateText(_pausePanel.transform, "PauseHint", new Vector2(0.5f, 0.41f), Vector2.zero,
+            new Vector2(700f, 36f), 16f, MutedText, TMPro.TextAlignmentOptions.Center).text = "ESC  /  RESUME OPERATION";
 
-        _pausePanel = CreatePanel(canvasObject.transform, "PausePanel",
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(16f / 255f, 18f / 255f, 18f / 255f, 0.82f));
-        CreateText(_pausePanel.transform, "PauseTitle", new Vector2(0.5f, 0.55f), Vector2.zero,
-            new Vector2(700f, 90f), 44f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center)
-            .text = "ПАУЗА\nESC — ПРОДОЛЖИТЬ";
-
-        _endPanel = CreatePanel(canvasObject.transform, "EndPanel",
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(16f / 255f, 18f / 255f, 18f / 255f, 0.88f));
+        _endPanel = CreatePanel(canvasObject.transform, "EndPanel", Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, new Color(8f / 255f, 10f / 255f, 10f / 255f, 0.95f));
         _endText = CreateText(_endPanel.transform, "EndText", new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(800f, 180f), 36f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center);
+            new Vector2(900f, 240f), 34f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Center);
 
-        Color transitionColor = MeralgorePalette.Shadow;
-        transitionColor.a = 1f;
         GameObject transitionObject = CreatePanel(canvasObject.transform, "Transition",
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            transitionColor);
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(8f / 255f, 10f / 255f, 10f / 255f, 1f));
         _transition = transitionObject.AddComponent<CanvasGroup>();
         _transition.interactable = false;
         _transition.blocksRaycasts = false;
     }
 
-    private IEnumerator FadeTransition()
+    private void BuildHeader(Transform parent)
     {
-        const float totalDuration = 0.3f;
-        const float halfDuration = totalDuration * 0.5f;
-        float startAlpha = _transition.alpha;
-
-        for (float elapsed = 0f; elapsed < halfDuration; elapsed += Time.unscaledDeltaTime)
-        {
-            _transition.alpha = Mathf.Lerp(startAlpha, 1f, elapsed / halfDuration);
-            yield return null;
-        }
-
-        _transition.alpha = 1f;
-        for (float elapsed = 0f; elapsed < halfDuration; elapsed += Time.unscaledDeltaTime)
-        {
-            _transition.alpha = Mathf.Lerp(1f, 0f, elapsed / halfDuration);
-            yield return null;
-        }
-
-        _transition.alpha = 0f;
-        _transitionRoutine = null;
+        GameObject frame = CreateFrame(parent, "StructureHeader", new Vector2(0f, 1f),
+            new Vector2(0f, 1f), new Vector2(34f, -28f), new Vector2(1852f, 58f), false);
+        CreateText(frame.transform, "Brand", new Vector2(0f, 0.5f), new Vector2(18f, 0f),
+            new Vector2(360f, 28f), 17f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left).text =
+            "METALGORE  <color=#4D7A78>//</color>  COS";
+        _sectorValue = CreateText(frame.transform, "Sector", new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(780f, 24f), 13f, MutedText, TMPro.TextAlignmentOptions.Center);
+        _sectorValue.text = "CHAPTER 01  /  FLOOR 01";
+        CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-18f, 0f),
+            new Vector2(320f, 24f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
+            "●  SYSTEM LINK  /  STABLE";
+        CreateAccent(frame.transform, "HeaderAccent", new Vector2(0f, 0f), new Vector2(0f, 0f),
+            new Vector2(0f, 0f), new Vector2(84f, 2f), Amber);
     }
 
-    private void CreateMapPanel(Transform parent, IReadOnlyList<FloorMapNode> nodes)
+    private void BuildOperatorPanel(Transform parent)
     {
-        GameObject panel = CreatePanel(parent, "MapPanel", new Vector2(1f, 1f), new Vector2(1f, 1f),
-            new Vector2(-25f, -25f), new Vector2(218f, 448f), new Color(16f / 255f, 18f / 255f, 18f / 255f, 0.76f));
-        RectTransform panelRect = panel.GetComponent<RectTransform>();
-        panelRect.pivot = new Vector2(1f, 1f);
-        CreateText(panel.transform, "MapTitle", new Vector2(0f, 1f), new Vector2(16f, -15f),
-            new Vector2(190f, 30f), 16f, MeralgorePalette.Signal, TMPro.TextAlignmentOptions.Left)
-            .text = "МАРШРУТ  /  БОСС ↑";
+        GameObject frame = CreateFrame(parent, "OperatorPanel", new Vector2(0f, 1f),
+            new Vector2(0f, 1f), new Vector2(34f, -112f), new Vector2(300f, 166f), true);
+        AddSectionTitle(frame.transform, "OPERATOR STATUS", "01 / VITALS");
+        _healthValue = CreateText(frame.transform, "HealthValue", new Vector2(0f, 1f),
+            new Vector2(18f, -54f), new Vector2(90f, 48f), 34f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Left);
+        _healthValue.text = "100";
+        CreateText(frame.transform, "HealthUnit", new Vector2(0f, 1f),
+            new Vector2(105f, -62f), new Vector2(80f, 20f), 11f, MutedText,
+            TMPro.TextAlignmentOptions.Left).text = " / 100 HP";
+        _healthState = CreateText(frame.transform, "HealthState", new Vector2(1f, 1f),
+            new Vector2(-16f, -64f), new Vector2(105f, 20f), 11f, Teal,
+            TMPro.TextAlignmentOptions.Right);
+        _healthState.text = "NOMINAL";
 
-        var nodePositions = new Dictionary<int, Vector2>();
+        GameObject barBack = CreatePanel(frame.transform, "HealthBarBack", new Vector2(0f, 1f),
+            new Vector2(0f, 1f), new Vector2(18f, -91f), new Vector2(264f, 7f), LineColor);
+        _healthFill = CreatePanel(barBack.transform, "HealthFill", Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, Teal).GetComponent<Image>();
+        _healthFill.type = Image.Type.Filled;
+        _healthFill.fillMethod = Image.FillMethod.Horizontal;
+        _healthFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        _healthFill.fillAmount = 1f;
+
+        CreateText(frame.transform, "CurrencyLabel", new Vector2(0f, 0f),
+            new Vector2(18f, 22f), new Vector2(110f, 20f), 11f, MutedText,
+            TMPro.TextAlignmentOptions.Left).text = "CREDITS";
+        _currencyValue = CreateText(frame.transform, "CurrencyValue", new Vector2(1f, 0f),
+            new Vector2(-18f, 22f), new Vector2(130f, 22f), 17f, Amber,
+            TMPro.TextAlignmentOptions.Right);
+        _currencyValue.text = "000";
+    }
+
+    private void BuildTacticalReticle(Transform parent)
+    {
+        GameObject tactical = new GameObject("TacticalReticle", typeof(RectTransform));
+        tactical.transform.SetParent(parent, false);
+        RectTransform root = tactical.GetComponent<RectTransform>();
+        root.anchorMin = new Vector2(0.5f, 0.5f);
+        root.anchorMax = new Vector2(0.5f, 0.5f);
+        root.pivot = new Vector2(0.5f, 0.5f);
+        root.anchoredPosition = Vector2.zero;
+        root.sizeDelta = new Vector2(84f, 84f);
+
+        Color reticle = new Color32(211, 221, 215, 190);
+        CreateAccent(root, "Top", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -5f), new Vector2(1f, 13f), reticle);
+        CreateAccent(root, "Bottom", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+            new Vector2(0f, 5f), new Vector2(1f, 13f), reticle);
+        CreateAccent(root, "Left", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(5f, 0f), new Vector2(13f, 1f), reticle);
+        CreateAccent(root, "Right", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(-5f, 0f), new Vector2(13f, 1f), reticle);
+        GameObject center = CreatePanel(root, "CenterDot", new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3f, 3f), Amber);
+        center.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+
+        CreateText(parent, "TacticalMode", new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -58f), new Vector2(300f, 18f), 10f, MutedText,
+            TMPro.TextAlignmentOptions.Center).text = "TARGET ACQUISITION  /  STANDBY";
+    }
+
+    private void BuildArmamentPanel(Transform parent)
+    {
+        GameObject frame = CreateFrame(parent, "ArmamentPanel", new Vector2(1f, 0f),
+            new Vector2(1f, 0f), new Vector2(-34f, 32f), new Vector2(390f, 154f), true);
+        AddSectionTitle(frame.transform, "ARMAMENT", "02 / ACTIVE LOADOUT");
+        _weaponName = CreateText(frame.transform, "WeaponName", new Vector2(0f, 1f),
+            new Vector2(18f, -56f), new Vector2(350f, 26f), 17f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Left);
+        _weaponName.text = "WEAPON SYSTEM";
+        _ammoValue = CreateText(frame.transform, "AmmoValue", new Vector2(0f, 1f),
+            new Vector2(18f, -91f), new Vector2(350f, 34f), 23f, Amber,
+            TMPro.TextAlignmentOptions.Left);
+        _ammoValue.text = "-- / --";
+        _weaponSlots = CreateText(frame.transform, "WeaponSlots", new Vector2(0f, 0f),
+            new Vector2(18f, 18f), new Vector2(350f, 20f), 11f, MutedText,
+            TMPro.TextAlignmentOptions.Left);
+        _weaponSlots.text = "01 EMPTY     02 EMPTY";
+    }
+
+    private void BuildNavigationPanel(Transform parent, IReadOnlyList<FloorMapNode> nodes)
+    {
+        GameObject frame = CreateFrame(parent, "NavigationPanel", new Vector2(1f, 1f),
+            new Vector2(1f, 1f), new Vector2(-34f, -112f), new Vector2(292f, 356f), true);
+        AddSectionTitle(frame.transform, "NAVIGATION", "03 / FLOOR GRAPH");
+        CreateText(frame.transform, "MapLegend", new Vector2(0f, 1f),
+            new Vector2(18f, -43f), new Vector2(250f, 18f), 9f, MutedText,
+            TMPro.TextAlignmentOptions.Left).text = "● CURRENT   ○ AVAILABLE   · UNKNOWN";
+
+        const float mapWidth = 246f;
+        const float mapHeight = 250f;
+        float mapTop = -70f;
+        var positions = new Dictionary<int, Vector2>();
+        int maxRow = 1;
+        foreach (FloorMapNode node in nodes)
+            maxRow = Mathf.Max(maxRow, node.Row);
+
         foreach (FloorMapNode node in nodes)
         {
-            nodePositions[node.Id] = new Vector2(42f + (node.Lane + 1) * 62f, 58f + node.Row * 48f);
+            float x = 18f + (node.Lane + 1) * (mapWidth * 0.5f);
+            float y = mapTop - 8f - node.Row * (mapHeight / maxRow);
+            positions[node.Id] = new Vector2(x, y);
         }
 
         foreach (FloorMapNode node in nodes)
         {
             foreach (int connectedId in node.Connections)
             {
-                if (connectedId <= node.Id)
+                if (connectedId <= node.Id || !positions.ContainsKey(connectedId))
                     continue;
 
-                Vector2 from = nodePositions[node.Id];
-                Vector2 to = nodePositions[connectedId];
+                Vector2 from = positions[node.Id];
+                Vector2 to = positions[connectedId];
                 Vector2 delta = to - from;
-                Color pathColor = MeralgorePalette.MainRoute;
-                pathColor.a = 0.55f;
-                GameObject line = CreatePanel(panel.transform, $"Path_{node.Id}_{connectedId}",
-                    new Vector2(0f, 0f), new Vector2(0f, 0f),
-                    (from + to) * 0.5f, new Vector2(delta.magnitude, 2f), pathColor);
+                GameObject line = CreatePanel(frame.transform, $"Route_{node.Id}_{connectedId}",
+                    new Vector2(0f, 1f), new Vector2(0f, 1f), (from + to) * 0.5f,
+                    new Vector2(delta.magnitude, 1.5f), new Color(Teal.r, Teal.g, Teal.b, 0.42f));
                 line.GetComponent<RectTransform>().rotation =
                     Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
             }
@@ -289,24 +418,100 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         foreach (FloorMapNode node in nodes)
         {
-            GameObject marker = CreatePanel(panel.transform, $"Node_{node.Id}",
-                new Vector2(0f, 0f), new Vector2(0f, 0f),
-                nodePositions[node.Id], new Vector2(14f, 14f), GetRoomColor(node.Type));
-            _roomMarkers[node.Id] = marker.GetComponent<UnityEngine.UI.Image>();
+            GameObject marker = CreatePanel(frame.transform, $"Node_{node.Id}",
+                new Vector2(0f, 1f), new Vector2(0f, 1f), positions[node.Id], new Vector2(10f, 10f), GetRoomColor(node.Type));
+            marker.GetComponent<RectTransform>().sizeDelta = node.Type == FloorRoomType.Boss
+                ? new Vector2(15f, 15f) : new Vector2(9f, 9f);
+            _roomMarkers[node.Id] = marker.GetComponent<Image>();
+        }
+
+        _roomValue = CreateText(frame.transform, "RoomValue", new Vector2(0f, 0f),
+            new Vector2(18f, 17f), new Vector2(250f, 20f), 12f, Amber,
+            TMPro.TextAlignmentOptions.Left);
+        _roomValue.text = "SPACE 01 / START";
+    }
+
+    private void BuildCompanionPanel(Transform parent)
+    {
+        GameObject frame = CreateFrame(parent, "CompanionPanel", new Vector2(0f, 0f),
+            new Vector2(0f, 0f), new Vector2(34f, 32f), new Vector2(300f, 88f), false);
+        AddSectionTitle(frame.transform, "COMPANION", "OPTIONAL MODULE");
+        _companionState = CreateText(frame.transform, "CompanionState", new Vector2(0f, 0f),
+            new Vector2(18f, 15f), new Vector2(140f, 20f), 12f, MutedText,
+            TMPro.TextAlignmentOptions.Left);
+        _companionState.text = "NOT INSTALLED";
+        _companionDetail = CreateText(frame.transform, "CompanionDetail", new Vector2(1f, 0f),
+            new Vector2(-18f, 15f), new Vector2(110f, 20f), 10f, MutedText,
+            TMPro.TextAlignmentOptions.Right);
+        _companionDetail.text = "ANALYSIS N/A";
+    }
+
+    private void BuildEventLog(Transform parent)
+    {
+        GameObject frame = CreateFrame(parent, "EventLogPanel", new Vector2(0f, 0f),
+            new Vector2(0f, 0f), new Vector2(354f, 148f), new Vector2(610f, 128f), false);
+        AddSectionTitle(frame.transform, "SYSTEM EVENT LOG", "LIVE TELEMETRY");
+        for (int i = 0; i < _logLines.Length; i++)
+        {
+            _logLines[i] = CreateText(frame.transform, $"Log_{i}", new Vector2(0f, 1f),
+                new Vector2(18f, -42f - i * 19f), new Vector2(570f, 18f), 10f,
+                i == _logLines.Length - 1 ? MeralgorePalette.Text : MutedText,
+                TMPro.TextAlignmentOptions.Left);
+            _logLines[i].alpha = 0f;
         }
     }
 
-    private GameObject CreatePanel(
-        Transform parent,
-        string objectName,
-        Vector2 anchorMin,
-        Vector2 anchorMax,
-        Vector2 position,
-        Vector2 size,
-        Color color)
+    private void BuildModifierStrip(Transform parent)
     {
-        var panel = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer),
-            typeof(UnityEngine.UI.Image));
+        GameObject frame = CreateFrame(parent, "ModifierStrip", new Vector2(1f, 0f),
+            new Vector2(1f, 0f), new Vector2(-34f, 210f), new Vector2(390f, 46f), false);
+        CreateText(frame.transform, "ModifierLabel", new Vector2(0f, 0.5f),
+            new Vector2(14f, 0f), new Vector2(90f, 18f), 9f, MutedText,
+            TMPro.TextAlignmentOptions.Left).text = "MODIFIERS";
+        _itemValue = CreateText(frame.transform, "ModifierValue", new Vector2(1f, 0.5f),
+            new Vector2(-14f, 0f), new Vector2(310f, 24f), 10f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Right);
+        _itemValue.text = "NO ACTIVE MODIFIERS";
+    }
+
+    private GameObject CreateFrame(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+        Vector2 position, Vector2 size, bool showAccent)
+    {
+        GameObject frame = CreatePanel(parent, name, anchorMin, anchorMax, position, size, PanelColor);
+        RectTransform rect = frame.GetComponent<RectTransform>();
+        rect.pivot = anchorMin == new Vector2(1f, 0f) || anchorMin == new Vector2(1f, 1f)
+            ? new Vector2(1f, anchorMin.y) : new Vector2(0f, anchorMin.y);
+
+        CreateAccent(frame.transform, "TopLine", new Vector2(0f, 1f), new Vector2(1f, 1f),
+            new Vector2(0f, -1f), new Vector2(0f, 1.5f), LineColor);
+        CreateAccent(frame.transform, "BottomLine", new Vector2(0f, 0f), new Vector2(1f, 0f),
+            new Vector2(0f, 1f), new Vector2(0f, 1f), LineColor);
+        CreateAccent(frame.transform, "LeftLine", new Vector2(0f, 0f), new Vector2(0f, 1f),
+            new Vector2(1f, 0f), new Vector2(1f, 0f), LineColor);
+        CreateAccent(frame.transform, "RightLine", new Vector2(1f, 0f), new Vector2(1f, 1f),
+            new Vector2(-1f, 0f), new Vector2(1f, 0f), LineColor);
+        if (showAccent)
+            CreateAccent(frame.transform, "SignalEdge", new Vector2(0f, 1f), new Vector2(0f, 1f),
+                new Vector2(12f, -1f), new Vector2(32f, 2f), Teal);
+        return frame;
+    }
+
+    private void AddSectionTitle(Transform parent, string title, string code)
+    {
+        CreateText(parent, title.Replace(" ", "") + "Label", new Vector2(0f, 1f),
+            new Vector2(16f, -15f), new Vector2(190f, 20f), 11f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Left).text = title;
+        CreateText(parent, title.Replace(" ", "") + "Code", new Vector2(1f, 1f),
+            new Vector2(-16f, -15f), new Vector2(130f, 18f), 9f, MutedText,
+            TMPro.TextAlignmentOptions.Right).text = code;
+        CreateAccent(parent, title.Replace(" ", "") + "Divider", new Vector2(0f, 1f),
+            new Vector2(1f, 1f), new Vector2(0f, -31f), new Vector2(0f, 1f), LineColor);
+    }
+
+    private GameObject CreatePanel(Transform parent, string objectName, Vector2 anchorMin,
+        Vector2 anchorMax, Vector2 position, Vector2 size, Color color)
+    {
+        GameObject panel = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         panel.transform.SetParent(parent, false);
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = anchorMin;
@@ -314,25 +519,27 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
-        UnityEngine.UI.Image image = panel.GetComponent<UnityEngine.UI.Image>();
+        Image image = panel.GetComponent<Image>();
         image.sprite = GetWhiteSprite();
         image.color = color;
         image.raycastTarget = false;
         return panel;
     }
 
-    private TMPro.TextMeshProUGUI CreateText(
-        Transform parent,
-        string objectName,
-        Vector2 anchor,
-        Vector2 position,
-        Vector2 size,
-        float fontSize,
-        Color color,
+    private void CreateAccent(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+        Vector2 position, Vector2 size, Color color)
+    {
+        GameObject line = CreatePanel(parent, name, anchorMin, anchorMax, position, size, color);
+        RectTransform rect = line.GetComponent<RectTransform>();
+        rect.pivot = new Vector2(anchorMin.x == 1f ? 1f : 0f, anchorMin.y == 1f ? 1f : 0f);
+    }
+
+    private TMPro.TextMeshProUGUI CreateText(Transform parent, string objectName, Vector2 anchor,
+        Vector2 position, Vector2 size, float fontSize, Color color,
         TMPro.TextAlignmentOptions alignment)
     {
-        var textObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer),
-            typeof(TMPro.TextMeshProUGUI));
+        GameObject textObject = new GameObject(objectName, typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(TMPro.TextMeshProUGUI));
         textObject.transform.SetParent(parent, false);
         RectTransform rect = textObject.GetComponent<RectTransform>();
         rect.anchorMin = anchor;
@@ -347,11 +554,12 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         text.color = color;
         text.alignment = alignment;
         text.fontStyle = TMPro.FontStyles.Bold;
-        text.characterSpacing = 1.5f;
+        text.characterSpacing = fontSize <= 12f ? 0.8f : 0.35f;
         text.outlineColor = MeralgorePalette.Shadow;
-        text.outlineWidth = 0.16f;
+        text.outlineWidth = 0.12f;
         text.raycastTarget = false;
-        text.enableWordWrapping = true;
+        text.enableWordWrapping = false;
+        text.overflowMode = TMPro.TextOverflowModes.Ellipsis;
         return text;
     }
 
@@ -360,16 +568,19 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         if (_runController == null)
             return;
 
-        foreach (KeyValuePair<int, UnityEngine.UI.Image> marker in _roomMarkers)
+        foreach (KeyValuePair<int, Image> marker in _roomMarkers)
         {
             FloorMapNode node = FindNode(marker.Key);
             Color color = node != null ? GetRoomColor(node.Type) : MeralgorePalette.Structure;
             if (marker.Key == _currentRoomId)
-                color = MeralgorePalette.Signal;
+                color = Amber;
             else if (_runController.IsRoomAvailable(marker.Key))
                 color = MeralgorePalette.Text;
             else if (!_runController.IsRoomVisited(marker.Key))
-                color.a = 0.42f;
+                color.a = 0.24f;
+            else
+                color.a = 0.62f;
+
             marker.Value.color = color;
         }
     }
@@ -381,6 +592,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
     private void RefreshLogs()
     {
+        if (_logLines == null)
+            return;
+
         float now = Time.unscaledTime;
         int visible = Mathf.Min(VisibleLogCount, _logs.Count);
         for (int i = 0; i < _logLines.Length; i++)
@@ -400,6 +614,27 @@ public class MeralgoreRuntimeUI : MonoBehaviour
                 ? 1f
                 : Mathf.Clamp01((LogLifetime - age) / LogFadeDuration);
         }
+    }
+
+    private IEnumerator FadeTransition()
+    {
+        const float halfDuration = 0.15f;
+        float startAlpha = _transition.alpha;
+        for (float elapsed = 0f; elapsed < halfDuration; elapsed += Time.unscaledDeltaTime)
+        {
+            _transition.alpha = Mathf.Lerp(startAlpha, 1f, elapsed / halfDuration);
+            yield return null;
+        }
+
+        _transition.alpha = 1f;
+        for (float elapsed = 0f; elapsed < halfDuration; elapsed += Time.unscaledDeltaTime)
+        {
+            _transition.alpha = Mathf.Lerp(1f, 0f, elapsed / halfDuration);
+            yield return null;
+        }
+
+        _transition.alpha = 0f;
+        _transitionRoutine = null;
     }
 
     private static Color GetRoomColor(FloorRoomType type)
@@ -424,10 +659,10 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     {
         switch (item)
         {
-            case MeralgoreItemType.FlowerSection: return "ЦВЕТОЧНОЕ СЕЧЕНИЕ";
-            case MeralgoreItemType.WingedKitten: return "КОТЁНОК С КРЫЛЬЯМИ";
-            case MeralgoreItemType.Devotion: return "ПРЕДАННОСТЬ";
-            case MeralgoreItemType.Meloni: return "МЭЛОНИ";
+            case MeralgoreItemType.FlowerSection: return "FLOWER SECTION";
+            case MeralgoreItemType.WingedKitten: return "WINGED KITTEN";
+            case MeralgoreItemType.Devotion: return "DEVOTION";
+            case MeralgoreItemType.Meloni: return "MELONI";
             default: return item.ToString().ToUpperInvariant();
         }
     }
