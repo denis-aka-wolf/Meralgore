@@ -175,11 +175,34 @@ public class Chapter1Floor1Generator : MonoBehaviour
             ramp.transform.localRotation = Quaternion.Euler(-16f, 0f, 0f);
         }
 
-        // Broken cross-bridges create alternate movement lines and sightline changes.
-        CreateCube(room, "Cross_Transit_Bridge_A", new Vector3(0f, 18f, 34f),
-            new Vector3(76f, 1.1f, 10f), structure);
-        CreateCube(room, "Cross_Transit_Bridge_B", new Vector3(0f, 9f, -53f),
-            new Vector3(52f, 1.1f, 8f), structure);
+        // Each territory gets a different large-scale architectural signature.
+        switch (node.Id % 4)
+        {
+            case 0:
+                CreateCube(room, "Variant_Industrial_Gantry", new Vector3(0f, 25f, 30f),
+                    new Vector3(118f, 3f, 9f), structure);
+                CreateCube(room, "Variant_Gantry_Hanger", new Vector3(42f, 17f, 30f),
+                    new Vector3(8f, 22f, 8f), props);
+                break;
+            case 1:
+                CreateCube(room, "Variant_Central_Transit", new Vector3(-12f, 21f, 0f),
+                    new Vector3(12f, 1.2f, 112f), structure);
+                CreateCube(room, "Variant_Suspended_Mass", new Vector3(35f, 42f, 18f),
+                    new Vector3(34f, 8f, 30f), props);
+                break;
+            case 2:
+                CreateCube(room, "Variant_Cross_Transit", new Vector3(0f, 16f, 26f),
+                    new Vector3(112f, 1.2f, 12f), structure);
+                CreateCube(room, "Variant_Transfer_Platform", new Vector3(-35f, 29f, -28f),
+                    new Vector3(34f, 2f, 28f), props);
+                break;
+            default:
+                CreateCube(room, "Variant_Overpass_A", new Vector3(-28f, 24f, 12f),
+                    new Vector3(12f, 2f, 100f), structure);
+                CreateCube(room, "Variant_Overpass_B", new Vector3(28f, 34f, -20f),
+                    new Vector3(12f, 2f, 76f), props);
+                break;
+        }
 
         // Massive supports rise well above the playable deck.
         for (int side = -1; side <= 1; side += 2)
