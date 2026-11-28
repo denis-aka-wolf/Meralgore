@@ -25,7 +25,7 @@ public class MeralgoreEnemyController : MonoBehaviour
 
     public bool IsBoss => _isBoss;
 
-    public void Configure(FloorRunController runController, bool isBoss)
+    public void Configure(FloorRunController runController, bool isBoss, int normalEnemyHealth)
     {
         _runController = runController;
         _target = runController.PlayerState;
@@ -40,11 +40,11 @@ public class MeralgoreEnemyController : MonoBehaviour
             attackRange = 5.5f;
             attackCooldown = 1.55f;
             attackDamage = 24f;
-            _health.SetHealth(500f);
+            _health.SetHealth(60f);
         }
         else
         {
-            _health.SetHealth(60f);
+            _health.SetHealth(normalEnemyHealth);
         }
 
         _characterController.height = 2.2f;
@@ -61,7 +61,7 @@ public class MeralgoreEnemyController : MonoBehaviour
         Vector3 toTarget = _target.transform.position - transform.position;
         toTarget.y = 0f;
         float distance = toTarget.magnitude;
-        bool phaseTwo = _isBoss && _health.CurrentHealth <= 250f;
+        bool phaseTwo = _isBoss && _health.CurrentHealth <= 30f;
         if (phaseTwo && !_phaseTwoUnlocked)
         {
             _phaseTwoUnlocked = true;
