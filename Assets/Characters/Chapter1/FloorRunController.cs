@@ -34,6 +34,7 @@ public class FloorRunController : MonoBehaviour
     public int CurrentSeed => _generator != null ? _generator.CurrentSeed : 0;
     public FloorMapRoom CurrentRoom => _currentRoom;
     public WeaponSwitcher WeaponSwitcher => _weaponSwitcher;
+    public Transform PlayerTransform => _movement != null ? _movement.transform : null;
 
     public void Initialize(Chapter1Floor1Generator generator)
     {
