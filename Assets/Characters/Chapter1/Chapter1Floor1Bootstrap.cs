@@ -43,7 +43,9 @@ public class Chapter1Floor1Bootstrap : MonoBehaviour
         if (_player == null)
             return;
 
-        Vector3 position = _player.transform.position;
+        // Bounds are defined in the generator's local space, not at world origin.
+        // This keeps the safety check valid if the floor root is moved or rotated in the scene.
+        Vector3 position = transform.InverseTransformPoint(_player.transform.position);
         bool outsideMap =
             position.y < fallLimitY ||
             Mathf.Abs(position.x) > sideLimit ||
