@@ -233,6 +233,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         _hud = CreatePanel(canvasObject.transform, "GameplayHUD", Vector2.zero, Vector2.one,
             Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0f));
 
+        BuildPerspectiveField(_hud.transform);
         BuildHeader(_hud.transform);
         BuildOperatorPanel(_hud.transform);
         BuildTacticalReticle(_hud.transform);
@@ -283,6 +284,25 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         _transition = transitionObject.AddComponent<CanvasGroup>();
         _transition.interactable = false;
         _transition.blocksRaycasts = false;
+    }
+
+    private void BuildPerspectiveField(Transform parent)
+    {
+        GameObject field = new GameObject("VisorPerspectiveField", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(MeralgoreHUDPerspectiveGraphic));
+        field.transform.SetParent(parent, false);
+        field.transform.SetAsFirstSibling();
+
+        RectTransform rect = field.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        MeralgoreHUDPerspectiveGraphic graphic = field.GetComponent<MeralgoreHUDPerspectiveGraphic>();
+        graphic.color = new Color(Teal.r, Teal.g, Teal.b, 0.24f);
+        graphic.raycastTarget = false;
     }
 
     private void BuildHeader(Transform parent)
@@ -540,6 +560,16 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         rect.pivot = new Vector2(anchorMin.x, anchorMin.y);
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
+
+        // Peripheral modules sit on a shared inward-facing visor surface.
+        // Keep the oversized structural header flat; skew the smaller side modules.
+        if (size.x <= 700f && anchorMin.x != 0.5f)
+        {
+            bool leftSide = anchorMin.x < 0.5f;
+            rect.localRotation = Quaternion.Euler(0f, 0f, leftSide ? 3.2f : -3.2f);
+            rect.localScale = new Vector3(0.965f, 0.985f, 1f);
+            rect.anchoredPosition += new Vector2(leftSide ? 5f : -5f, anchorMin.y > 0.5f ? -2f : 2f);
+        }
 
         MeralgoreHUDFrameGraphic graphic = frame.GetComponent<MeralgoreHUDFrameGraphic>();
         graphic.SetPalette(PanelColor, LineColor, showAccent ? Teal : new Color32(92, 103, 98, 150));
