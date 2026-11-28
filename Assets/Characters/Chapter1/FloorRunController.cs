@@ -194,16 +194,55 @@ public class FloorRunController : MonoBehaviour
         room.SetLocked(true);
         _activeEnemies.Clear();
 
+        var spawnPositions = new List<Vector3>(enemyCount);
         for (int i = 0; i < enemyCount; i++)
         {
-            float x = (float)(_random.NextDouble() * 112f - 56f);
-            float z = (float)(_random.NextDouble() * 92f - 46f);
-            Vector3 position = room.transform.position + new Vector3(x, 0f, z);
+            Vector3 position;
+            if (boss)
+            {
+                position = room.transform.position + new Vector3(0f, 0f, 34f);
+            }
+            else
+            {
+                position = FindSeparatedSpawnPosition(room, spawnPositions);
+                spawnPositions.Add(position);
+            }
+
             SpawnEnemy(position, room, boss, i + 1);
         }
 
         if (!boss)
-            Log($"Началась схватка. Противников: {enemyCount}.");
+            Log($"Началась схватка. Противников: {enemyCount}. Цели распределены по территории.");
+    }
+
+    private Vector3 FindSeparatedSpawnPosition(FloorMapRoom room, List<Vector3> occupied)
+    {
+        const float minimumSpacing = 8.5f;
+        Vector3 candidate = room.transform.position;
+
+        // Rejection sampling keeps the initial formation spread over the whole combat zone.
+        for (int attempt = 0; attempt < 64; attempt++)
+        {
+            float x = (float)(_random.NextDouble() * 156f - 78f);
+            float z = (float)(_random.NextDouble() * 144f - 72f);
+            candidate = room.transform.position + new Vector3(x, 0f, z);
+
+            bool hasClearance = true;
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                if ((occupied[i] - candidate).sqrMagnitude < minimumSpacing * minimumSpacing)
+                {
+                    hasClearance = false;
+                    break;
+                }
+            }
+
+            if (hasClearance)
+                return candidate;
+        }
+
+        // The large floor makes this fallback rare; retain a valid position if the area is crowded.
+        return candidate;
     }
 
     private void SpawnEnemy(Vector3 position, FloorMapRoom room, bool boss, int ordinal)
