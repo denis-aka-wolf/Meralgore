@@ -14,8 +14,8 @@ public class FloorMapRoom : MonoBehaviour
         Node = node;
         var trigger = gameObject.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
-        trigger.center = new Vector3(0f, 8f, 0f);
-        trigger.size = new Vector3(64f, 18f, 48f);
+        trigger.center = new Vector3(0f, 36f, 0f);
+        trigger.size = new Vector3(146f, 76f, 126f);
     }
 
     public void SetRunController(FloorRunController runController)
