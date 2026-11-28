@@ -141,6 +141,8 @@ public class Chapter1Floor1Generator : MonoBehaviour
         CreateCube(room, "Route_Inlay", new Vector3(0f, 0.08f, 0f),
             new Vector3(7f, 0.12f, LocationDepth - 8f), route);
 
+        // Hard perimeter: openings exist only where the generated floor graph has a link.
+        CreateWalls(room, GetOpenings(node, nodes), walls);
         CreateOpenTerritoryArchitecture(room, node, structure, props, random);
         CreateMegastructureBackdrop(room, node, walls, structure, random);
         CreateTerritoryIdentity(room, node, route, signal: props);
@@ -236,35 +238,96 @@ public class Chapter1Floor1Generator : MonoBehaviour
     private void CreateMegastructureBackdrop(
         Transform room, FloorMapNode node, Material walls, Material structure, System.Random random)
     {
-        // Local skyline silhouettes give every territory its own distant industrial profile.
-        for (int i = 0; i < 12; i++)
+        // Dense outer skyline: multiple layers of colossal structures, well beyond the arena.
+        for (int i = 0; i < 30; i++)
         {
-            float angle = i * 30f + random.Next(-9, 10);
-            float radius = random.Next(105, 175);
+            float angle = i * 12f + random.Next(-7, 8);
+            float radius = random.Next(185, 390);
             float radians = angle * Mathf.Deg2Rad;
             float x = Mathf.Cos(radians) * radius;
             float z = Mathf.Sin(radians) * radius;
-            float height = random.Next(75, 190);
-            float width = random.Next(12, 30);
-            GameObject tower = CreateCube(room, $"Distant_Structure_{i:00}",
+            float height = random.Next(110, 290);
+            float width = random.Next(16, 42);
+            GameObject tower = CreateCube(room, $"Distant_Megastructure_Tower_{i:00}",
                 new Vector3(x, height * 0.5f, z),
-                new Vector3(width, height, width * random.Next(1, 3)), i % 3 == 0 ? walls : structure);
+                new Vector3(width, height, width * random.Next(1, 4)),
+                i % 4 == 0 ? walls : structure);
             tower.transform.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
-            Collider towerCollider = tower.GetComponent<Collider>();
-            if (towerCollider != null) towerCollider.enabled = false;
+            DisableCollider(tower);
         }
 
-        // Huge suspended spans visible above and beyond the playable battlefield.
-        GameObject span = CreateCube(room, "Distant_Horizontal_Span",
-            new Vector3(random.Next(-35, 36), 105f, 145f),
-            new Vector3(190f, 12f, 18f), walls);
-        GameObject shaft = CreateCube(room, "Distant_Vertical_Shaft",
-            new Vector3(random.Next(-35, 36), 90f, -145f),
-            new Vector3(24f, 180f, 24f), structure);
-        Collider spanCollider = span.GetComponent<Collider>();
-        Collider shaftCollider = shaft.GetComponent<Collider>();
-        if (spanCollider != null) spanCollider.enabled = false;
-        if (shaftCollider != null) shaftCollider.enabled = false;
+        // Colossal vertical shafts and diagonal braces fill the gaps between distant towers.
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = i * 30f + random.Next(-10, 11);
+            float radius = random.Next(230, 360);
+            float radians = angle * Mathf.Deg2Rad;
+            float x = Mathf.Cos(radians) * radius;
+            float z = Mathf.Sin(radians) * radius;
+            float height = random.Next(180, 340);
+            GameObject shaft = CreateCube(room, $"Distant_Shaft_{i:00}",
+                new Vector3(x, height * 0.5f, z),
+                new Vector3(random.Next(10, 20), height, random.Next(10, 20)), walls);
+            DisableCollider(shaft);
+        }
+
+        // Long elevated bridges cross the view at several depths and heights.
+        for (int i = 0; i < 9; i++)
+        {
+            float angle = i * 20f + random.Next(-8, 9);
+            float radius = random.Next(210, 330);
+            float radians = angle * Mathf.Deg2Rad;
+            float x = Mathf.Cos(radians) * radius;
+            float z = Mathf.Sin(radians) * radius;
+            float y = random.Next(75, 190);
+            GameObject bridge = CreateCube(room, $"Distant_Transit_Bridge_{i:00}",
+                new Vector3(x, y, z),
+                new Vector3(random.Next(90, 190), random.Next(5, 13), random.Next(12, 24)), structure);
+            bridge.transform.localRotation = Quaternion.Euler(0f, angle + 90f, 0f);
+            DisableCollider(bridge);
+        }
+
+        // Overhead megastructure: layered ceiling trusses, suspended decks and machinery.
+        for (int i = 0; i < 7; i++)
+        {
+            float z = -105f + i * 35f;
+            GameObject beam = CreateCube(room, $"Overhead_Primary_Truss_{i:00}",
+                new Vector3(random.Next(-25, 26), 105f + random.Next(-8, 9), z),
+                new Vector3(210f, random.Next(7, 15), random.Next(8, 18)), walls);
+            DisableCollider(beam);
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            float x = random.Next(-105, 106);
+            float z = random.Next(-105, 106);
+            float y = random.Next(78, 145);
+            GameObject suspended = CreateCube(room, $"Overhead_Suspended_Mass_{i:00}",
+                new Vector3(x, y, z),
+                new Vector3(random.Next(18, 48), random.Next(8, 22), random.Next(18, 55)), structure);
+            suspended.transform.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
+            DisableCollider(suspended);
+
+            GameObject hanger = CreateCube(room, $"Overhead_Hanger_{i:00}",
+                new Vector3(x, y - 22f, z),
+                new Vector3(3f, 42f, 3f), walls);
+            DisableCollider(hanger);
+        }
+
+        // A distant upper level frames the arena without sealing its sightlines.
+        for (int side = -1; side <= 1; side += 2)
+        {
+            GameObject upperSpine = CreateCube(room, side < 0 ? "Distant_Upper_Spine_W" : "Distant_Upper_Spine_E",
+                new Vector3(side * 175f, 155f, 0f), new Vector3(24f, 10f, 360f), structure);
+            DisableCollider(upperSpine);
+        }
+    }
+
+    private static void DisableCollider(GameObject target)
+    {
+        Collider targetCollider = target.GetComponent<Collider>();
+        if (targetCollider != null)
+            targetCollider.enabled = false;
     }
 
     private void CreateTerritoryIdentity(Transform room, FloorMapNode node, Material route, Material signal)
@@ -361,13 +424,13 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Vector3 scale;
         if (side == OpeningSide.North || side == OpeningSide.South)
         {
-            position = new Vector3((start + end) * 0.5f, 4f, wallPosition);
-            scale = new Vector3(length, 8f, 3f);
+            position = new Vector3((start + end) * 0.5f, 31f, wallPosition);
+            scale = new Vector3(length, 62f, 6f);
         }
         else
         {
-            position = new Vector3(wallPosition, 4f, (start + end) * 0.5f);
-            scale = new Vector3(3f, 8f, length);
+            position = new Vector3(wallPosition, 31f, (start + end) * 0.5f);
+            scale = new Vector3(6f, 62f, length);
         }
 
         CreateCube(room, $"Boundary_{side}_{start:F0}", position, scale, material);
