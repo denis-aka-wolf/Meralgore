@@ -30,6 +30,8 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private TMPro.TextMeshProUGUI _currencyValue;
     private TMPro.TextMeshProUGUI _roomValue;
     private TMPro.TextMeshProUGUI _sectorValue;
+    private TMPro.TextMeshProUGUI _coordinateValue;
+    private TMPro.TextMeshProUGUI _seedValue;
     private TMPro.TextMeshProUGUI _weaponName;
     private TMPro.TextMeshProUGUI _ammoValue;
     private TMPro.TextMeshProUGUI _weaponSlots;
@@ -162,7 +164,14 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         _currencyValue.text = _playerState.Currency.ToString("000");
         _roomValue.text = _runController.GetRoomLabel();
-        _sectorValue.text = $"CHAPTER 01  /  FLOOR 01     //     SEED {_seed}";
+        _sectorValue.text = "SECTOR 01  //  FLOOR 01";
+        _seedValue.text = $"RUN SEED  //  {_seed:000000}";
+
+        if (_coordinateValue != null && _runController.PlayerTransform != null)
+        {
+            Vector3 position = _runController.PlayerTransform.position;
+            _coordinateValue.text = $"X {position.x:+000.0;-000.0;000.0}    Y {position.y:+000.0;-000.0;000.0}    Z {position.z:+000.0;-000.0;000.0}";
+        }
 
         WeaponSwitcher weaponSwitcher = _runController.WeaponSwitcher;
         Weapon weapon = weaponSwitcher != null ? weaponSwitcher.weapon : null;
@@ -279,18 +288,67 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private void BuildHeader(Transform parent)
     {
         GameObject frame = CreateFrame(parent, "StructureHeader", new Vector2(0f, 1f),
-            new Vector2(0f, 1f), new Vector2(34f, -28f), new Vector2(1852f, 58f), false);
-        CreateText(frame.transform, "Brand", new Vector2(0f, 0.5f), new Vector2(18f, 0f),
-            new Vector2(360f, 28f), 17f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left).text =
-            "METALGORE  <color=#4D7A78>//</color>  COS";
-        _sectorValue = CreateText(frame.transform, "Sector", new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(780f, 24f), 13f, MutedText, TMPro.TextAlignmentOptions.Center);
-        _sectorValue.text = "CHAPTER 01  /  FLOOR 01";
-        CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-18f, 0f),
-            new Vector2(320f, 24f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
+            new Vector2(0f, 1f), new Vector2(34f, -24f), new Vector2(1852f, 104f), false);
+
+        GameObject emblem = new GameObject("MeralgoreEmblem", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(MeralgoreHUDLogoGraphic));
+        emblem.transform.SetParent(frame.transform, false);
+        RectTransform emblemRect = emblem.GetComponent<RectTransform>();
+        emblemRect.anchorMin = new Vector2(0f, 0.5f);
+        emblemRect.anchorMax = new Vector2(0f, 0.5f);
+        emblemRect.pivot = new Vector2(0f, 0.5f);
+        emblemRect.anchoredPosition = new Vector2(20f, 0f);
+        emblemRect.sizeDelta = new Vector2(48f, 54f);
+        MeralgoreHUDLogoGraphic emblemGraphic = emblem.GetComponent<MeralgoreHUDLogoGraphic>();
+        emblemGraphic.color = MeralgorePalette.MainRoute;
+        emblemGraphic.raycastTarget = false;
+
+        CreateText(frame.transform, "Brand", new Vector2(0f, 0.5f), new Vector2(82f, 13f),
+            new Vector2(330f, 34f), 25f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left).text =
+            "METALGORE";
+        CreateText(frame.transform, "BrandSubtitle", new Vector2(0f, 0.5f), new Vector2(84f, -17f),
+            new Vector2(320f, 18f), 11f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "COMBAT OPERATING SYSTEM";
+
+        CreateAccent(frame.transform, "BrandSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(438f, -0f), new Vector2(1f, 58f), LineColor);
+
+        CreateText(frame.transform, "SectorCaption", new Vector2(0f, 0.5f), new Vector2(474f, 17f),
+            new Vector2(300f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "STRUCTURE INDEX  /  ACTIVE ROUTE";
+        _sectorValue = CreateText(frame.transform, "Sector", new Vector2(0f, 0.5f), new Vector2(474f, -9f),
+            new Vector2(390f, 30f), 20f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left);
+        _sectorValue.text = "SECTOR 01  //  FLOOR 01";
+        CreateAccent(frame.transform, "SectorRule", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(474f, -31f), new Vector2(300f, 1f), Teal);
+        CreateAccent(frame.transform, "SectorRuleTickA", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(790f, -27f), new Vector2(3f, 8f), Amber);
+
+        CreateAccent(frame.transform, "CoordinateSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(930f, -0f), new Vector2(1f, 58f), LineColor);
+        CreateText(frame.transform, "CoordinateCaption", new Vector2(0f, 0.5f), new Vector2(962f, 17f),
+            new Vector2(420f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "OPERATOR POSITION  /  LOCAL METERS";
+        _coordinateValue = CreateText(frame.transform, "Coordinates", new Vector2(0f, 0.5f),
+            new Vector2(962f, -9f), new Vector2(470f, 28f), 15f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Left);
+        _coordinateValue.text = "X 000.0    Y 000.0    Z 000.0";
+        CreateAccent(frame.transform, "CoordinateRule", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(962f, -31f), new Vector2(350f, 1f), LineColor);
+
+        CreateAccent(frame.transform, "StatusSeparator", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(-360f, 0f), new Vector2(1f, 58f), LineColor);
+        CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-20f, 10f),
+            new Vector2(300f, 22f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
             "●  SYSTEM LINK  /  STABLE";
+        _seedValue = CreateText(frame.transform, "RunSeed", new Vector2(1f, 0.5f), new Vector2(-20f, -17f),
+            new Vector2(300f, 18f), 10f, MutedText, TMPro.TextAlignmentOptions.Right);
+        _seedValue.text = $"RUN SEED  //  {_seed:000000}";
+
         CreateAccent(frame.transform, "HeaderAccent", new Vector2(0f, 0f), new Vector2(0f, 0f),
-            new Vector2(0f, 0f), new Vector2(84f, 2f), Amber);
+            new Vector2(0f, 0f), new Vector2(120f, 2f), Amber);
+        CreateAccent(frame.transform, "HeaderTrace", new Vector2(0f, 0f), new Vector2(0f, 0f),
+            new Vector2(470f, 0f), new Vector2(420f, 1f), new Color(Teal.r, Teal.g, Teal.b, 0.48f));
     }
 
     private void BuildOperatorPanel(Transform parent)
