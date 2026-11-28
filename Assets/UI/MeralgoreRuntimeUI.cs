@@ -59,9 +59,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         foreach (FloorMapNode node in nodes)
             _nodesById[node.Id] = node;
 
-        _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/TMP_AnkaCoder-C87-r");
-        if (_font == null)
-            _font = TMPro.TMP_Settings.defaultFontAsset;
+        _font = TMPro.TMP_Settings.defaultFontAsset;
         if (_font == null)
             _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (_font == null)
@@ -553,8 +551,8 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         text.fontSize = fontSize;
         text.color = color;
         text.alignment = alignment;
-        text.fontStyle = TMPro.FontStyles.Bold;
-        text.characterSpacing = fontSize <= 12f ? 0.8f : 0.35f;
+        text.fontStyle = fontSize >= 20f ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
+        text.characterSpacing = fontSize <= 12f ? 1.05f : fontSize <= 17f ? 0.55f : 0.15f;
         text.outlineColor = MeralgorePalette.Shadow;
         text.outlineWidth = 0.12f;
         text.raycastTarget = false;
