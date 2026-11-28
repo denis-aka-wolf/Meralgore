@@ -199,16 +199,16 @@ public class FloorRunController : MonoBehaviour
             float x = (float)(_random.NextDouble() * 28f - 14f);
             float z = (float)(_random.NextDouble() * 22f - 11f);
             Vector3 position = room.transform.position + new Vector3(x, 0f, z);
-            SpawnEnemy(position, room, boss);
+            SpawnEnemy(position, room, boss, i + 1);
         }
 
         if (!boss)
             Log($"Началась схватка. Противников: {enemyCount}.");
     }
 
-    private void SpawnEnemy(Vector3 position, FloorMapRoom room, bool boss)
+    private void SpawnEnemy(Vector3 position, FloorMapRoom room, bool boss, int ordinal)
     {
-        var enemyObject = new GameObject(boss ? "Megastructure_Boss" : "Megastructure_Enemy");
+        var enemyObject = new GameObject(boss ? "BOSS" : $"HOSTILE_{ordinal:00}");
         enemyObject.transform.position = position;
         int enemyLayer = LayerMask.NameToLayer("Enemy");
         if (enemyLayer >= 0)
@@ -230,14 +230,23 @@ public class FloorRunController : MonoBehaviour
         CreateEnemyVisual(enemyObject.transform, boss);
         enemy.Configure(this, boss);
 
+        health.Damaged += OnEnemyDamaged;
         health.Died += OnEnemyDied;
         _activeEnemies.Add(health);
         if (boss)
             Log("Босс готовит атаку.");
     }
 
+    private void OnEnemyDamaged(Health enemyHealth, float damage, float remainingHealth)
+    {
+        string targetName = enemyHealth.gameObject.name.Replace('_', ' ');
+        Log($"HIT // {targetName} // -{Mathf.CeilToInt(damage)} DMG // " +
+            $"{Mathf.CeilToInt(remainingHealth)}/{Mathf.CeilToInt(enemyHealth.MaxHealth)} HP");
+    }
+
     private void OnEnemyDied(Health enemyHealth)
     {
+        enemyHealth.Damaged -= OnEnemyDamaged;
         enemyHealth.Died -= OnEnemyDied;
         _activeEnemies.Remove(enemyHealth);
 

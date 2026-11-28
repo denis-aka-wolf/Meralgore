@@ -10,18 +10,22 @@ public class Health : MonoBehaviour
     private bool _isDead;
 
     public static event Action<float> DamageDealt;
+    public event Action<Health, float, float> Damaged;
     public event Action<Health> Died;
     public float CurrentHealth => health;
+    public float MaxHealth { get; private set; }
     public bool IsDead => _isDead;
 
     private void Awake()
     {
         _audioSource = GetComponent<AudioSource>();
+        MaxHealth = health;
     }
 
     public void SetHealth(float value)
     {
         health = Mathf.Max(1f, value);
+        MaxHealth = health;
         _isDead = false;
     }
 
@@ -30,10 +34,11 @@ public class Health : MonoBehaviour
         if (_isDead || damage <= 0f)
             return;
 
-        health -= damage;
+        health = Mathf.Max(0f, health - damage);
         DamageDealt?.Invoke(damage);
+        Damaged?.Invoke(this, damage, health);
 
-        if (health <= 0)
+        if (health <= 0f)
             Death();
     }
 
