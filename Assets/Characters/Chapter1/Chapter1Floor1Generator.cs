@@ -76,7 +76,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
             _rooms.Add(room);
 
             Material routeMaterial = GetRoomMaterial(node.Type, route, signal, boss);
-            CreateRoomGeometry(roomObject.transform, node, nodes, floor, walls, structure, routeMaterial, props, random);
+            CreateRoomGeometry(roomObject.transform, node, structure, routeMaterial, props, random);
         }
 
         for (int i = 0; i < nodes.Count; i++)
@@ -90,7 +90,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
                 FloorMapNode connectedNode = nodes[connectedId];
                 Vector3 from = GetPosition(node);
                 Vector3 to = GetPosition(connectedNode);
-                CreateLink(from, to, node, connectedNode, roomComponents, route, signal);
+                CreateLink(from, to, node, connectedNode, roomComponents, signal);
             }
         }
 
@@ -137,9 +137,6 @@ public class Chapter1Floor1Generator : MonoBehaviour
     private void CreateRoomGeometry(
         Transform room,
         FloorMapNode node,
-        List<FloorMapNode> nodes,
-        Material floor,
-        Material walls,
         Material structure,
         Material route,
         Material props,
@@ -319,7 +316,6 @@ public class Chapter1Floor1Generator : MonoBehaviour
         FloorMapNode fromNode,
         FloorMapNode toNode,
         FloorMapRoom[] rooms,
-        Material routeMaterial,
         Material signalMaterial)
     {
         Vector3 delta = to - from;
