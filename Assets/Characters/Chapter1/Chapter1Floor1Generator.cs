@@ -157,7 +157,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Transform room, FloorMapNode node, Material structure, Material props, System.Random random)
     {
         // Keep the central combat lane readable and mostly unobstructed.
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
         {
             float x = (float)(random.NextDouble() * 112f - 56f);
             float z = (float)(random.NextDouble() * 92f - 46f);
@@ -173,10 +173,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         {
             float x = side * 53f;
             CreateCube(room, side < 0 ? "West_Transit_Deck" : "East_Transit_Deck",
-                new Vector3(x, 12f, 0f), new Vector3(24f, 1.2f, 104f), structure);
-            CreateCube(room, side < 0 ? "West_Deck_Spine" : "East_Deck_Spine",
-                new Vector3(side * 67f, 14f, 0f), new Vector3(2f, 4f, 108f), props);
-
+                new Vector3(x, 12f, 0f), new Vector3(28f, 1.2f, 174f), structure);
             CreateRampBetween(room, side < 0 ? "West_Access_Ramp" : "East_Access_Ramp",
                 new Vector3(side * 13f, 0.4f, -72f),
                 new Vector3(side * 53f, 12f, -18f), 18f, structure);
@@ -220,16 +217,12 @@ public class Chapter1Floor1Generator : MonoBehaviour
                 float z = depth * 57f;
                 CreateCube(room, $"Megastructure_Pylon_{side}_{depth}",
                     new Vector3(x, 34f, z), new Vector3(7f, 68f, 7f), structure);
-                CreateCube(room, $"Pylon_Collar_{side}_{depth}",
-                    new Vector3(x, 19f, z), new Vector3(13f, 3f, 13f), props);
             }
         }
 
         // Suspended machinery overhead. Deliberately discontinuous: never cap the whole arena.
-        CreateCube(room, "Overhead_Machinery_A", new Vector3(-34f, 48f, 5f),
-            new Vector3(38f, 5f, 16f), structure);
-        CreateCube(room, "Overhead_Machinery_B", new Vector3(42f, 57f, -28f),
-            new Vector3(30f, 4f, 22f), props);
+        CreateCube(room, "Overhead_Machinery", new Vector3(-38f, 52f, 12f),
+            new Vector3(52f, 6f, 20f), structure);
 
         if (node.Type == FloorRoomType.Boss)
         {
