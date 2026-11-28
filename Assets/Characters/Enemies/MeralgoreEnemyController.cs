@@ -127,6 +127,21 @@ public class MeralgoreEnemyController : MonoBehaviour
             return;
         }
 
+        if (!_isBoss)
+        {
+            Vector3 separation = GetSeparationVector();
+            if (separation.sqrMagnitude > 0.01f)
+            {
+                Vector3 spacingMove = separation.normalized * (chaseSpeed * 0.28f);
+                if (_characterController.isGrounded)
+                    _verticalVelocity = -2f;
+                else
+                    _verticalVelocity += Physics.gravity.y * Time.deltaTime;
+                spacingMove.y = _verticalVelocity;
+                _characterController.Move(spacingMove * Time.deltaTime);
+            }
+        }
+
         if (Time.time < _nextAttackTime)
             return;
 
