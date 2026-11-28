@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MeralgoreEnemyController : MonoBehaviour
 {
+    private static readonly List<MeralgoreEnemyController> ActiveEnemies =
+        new List<MeralgoreEnemyController>();
     [SerializeField] private float chaseSpeed = 4f;
     [SerializeField] private float attackRange = 1.8f;
     [SerializeField] private float attackCooldown = 1.2f;
@@ -22,6 +25,8 @@ public class MeralgoreEnemyController : MonoBehaviour
     private float _attackRadius;
     private float _attackDamage;
     private Vector3 _attackCenter;
+    private float _formationAngle;
+    private float _engagementRadius = 1.9f;
 
     public bool IsBoss => _isBoss;
 
@@ -30,6 +35,10 @@ public class MeralgoreEnemyController : MonoBehaviour
         _runController = runController;
         _target = runController.PlayerState;
         _isBoss = isBoss;
+        _formationAngle = Mathf.Abs(GetInstanceID() % 360) * Mathf.Deg2Rad;
+        _engagementRadius = 1.7f + Mathf.Abs(GetInstanceID() % 3) * 0.35f;
+        if (!ActiveEnemies.Contains(this))
+            ActiveEnemies.Add(this);
         _characterController = GetComponent<CharacterController>();
         _health = GetComponent<Health>();
 
@@ -81,18 +90,38 @@ public class MeralgoreEnemyController : MonoBehaviour
             return;
         }
 
-        float effectiveAttackRange = phaseTwo ? 8.5f : attackRange;
+        float effectiveAttackRange = phaseTwo ? 8.5f : (_isBoss ? attackRange : 2.8f);
         if (distance > effectiveAttackRange)
         {
-            if (toTarget.sqrMagnitude > 0.01f)
-                transform.rotation = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
+            Vector3 desiredPoint = _target.transform.position;
+            if (!_isBoss)
+            {
+                Vector3 orbitOffset = new Vector3(
+                    Mathf.Cos(_formationAngle), 0f, Mathf.Sin(_formationAngle)) * _engagementRadius;
+                desiredPoint += orbitOffset;
+            }
+
+            Vector3 toApproachPoint = desiredPoint - transform.position;
+            toApproachPoint.y = 0f;
+            Vector3 movementDirection = toApproachPoint.sqrMagnitude > 0.01f
+                ? toApproachPoint.normalized
+                : toTarget.normalized;
+
+            if (!_isBoss)
+            {
+                Vector3 separation = GetSeparationVector();
+                movementDirection = (movementDirection + separation * 1.8f).normalized;
+            }
+
+            if (movementDirection.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.LookRotation(movementDirection, Vector3.up);
 
             if (_characterController.isGrounded)
                 _verticalVelocity = -2f;
             else
                 _verticalVelocity += Physics.gravity.y * Time.deltaTime;
 
-            Vector3 movement = toTarget.normalized * chaseSpeed;
+            Vector3 movement = movementDirection * chaseSpeed;
             movement.y = _verticalVelocity;
             _characterController.Move(movement * Time.deltaTime);
             return;
@@ -116,6 +145,31 @@ public class MeralgoreEnemyController : MonoBehaviour
             BeginAttack(_target.transform.position, 4.5f, attackDamage, 0.65f,
                 "Босс замахивается. Уходите из зоны удара!");
         }
+    }
+
+    private Vector3 GetSeparationVector()
+    {
+        const float separationRadius = 2.35f;
+        Vector3 separation = Vector3.zero;
+
+        for (int i = 0; i < ActiveEnemies.Count; i++)
+        {
+            MeralgoreEnemyController other = ActiveEnemies[i];
+            if (other == null || other == this || other._isBoss ||
+                other._runController != _runController || other._health == null || other._health.IsDead)
+                continue;
+
+            Vector3 away = transform.position - other.transform.position;
+            away.y = 0f;
+            float sqrDistance = away.sqrMagnitude;
+            if (sqrDistance <= 0.001f || sqrDistance >= separationRadius * separationRadius)
+                continue;
+
+            float distance = Mathf.Sqrt(sqrDistance);
+            separation += away / (distance * distance);
+        }
+
+        return separation;
     }
 
     private void BeginAttack(
@@ -200,6 +254,7 @@ public class MeralgoreEnemyController : MonoBehaviour
 
     private void OnDestroy()
     {
+        ActiveEnemies.Remove(this);
         if (_attackTelegraph != null)
             Destroy(_attackTelegraph);
         if (_telegraphMaterial != null)
