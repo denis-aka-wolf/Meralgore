@@ -59,7 +59,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         foreach (FloorMapNode node in nodes)
             _nodesById[node.Id] = node;
 
-        _font = TMPro.TMP_Settings.defaultFontAsset;
+        _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/TMP_AnkaCoder-C87-r");
+        if (_font == null)
+            _font = TMPro.TMP_Settings.defaultFontAsset;
         if (_font == null)
             _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (_font == null)
@@ -477,22 +479,20 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private GameObject CreateFrame(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
         Vector2 position, Vector2 size, bool showAccent)
     {
-        GameObject frame = CreatePanel(parent, name, anchorMin, anchorMax, position, size, PanelColor);
-        RectTransform rect = frame.GetComponent<RectTransform>();
-        rect.pivot = anchorMin == new Vector2(1f, 0f) || anchorMin == new Vector2(1f, 1f)
-            ? new Vector2(1f, anchorMin.y) : new Vector2(0f, anchorMin.y);
+        GameObject frame = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer),
+            typeof(MeralgoreHUDFrameGraphic));
+        frame.transform.SetParent(parent, false);
 
-        CreateAccent(frame.transform, "TopLine", new Vector2(0f, 1f), new Vector2(1f, 1f),
-            new Vector2(0f, -1f), new Vector2(0f, 1.5f), LineColor);
-        CreateAccent(frame.transform, "BottomLine", new Vector2(0f, 0f), new Vector2(1f, 0f),
-            new Vector2(0f, 1f), new Vector2(0f, 1f), LineColor);
-        CreateAccent(frame.transform, "LeftLine", new Vector2(0f, 0f), new Vector2(0f, 1f),
-            new Vector2(1f, 0f), new Vector2(1f, 0f), LineColor);
-        CreateAccent(frame.transform, "RightLine", new Vector2(1f, 0f), new Vector2(1f, 1f),
-            new Vector2(-1f, 0f), new Vector2(1f, 0f), LineColor);
-        if (showAccent)
-            CreateAccent(frame.transform, "SignalEdge", new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(12f, -1f), new Vector2(32f, 2f), Teal);
+        RectTransform rect = frame.GetComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = new Vector2(anchorMin.x, anchorMin.y);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        MeralgoreHUDFrameGraphic graphic = frame.GetComponent<MeralgoreHUDFrameGraphic>();
+        graphic.SetPalette(PanelColor, LineColor, showAccent ? Teal : new Color32(92, 103, 98, 150));
+        graphic.raycastTarget = false;
         return frame;
     }
 
