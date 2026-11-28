@@ -404,8 +404,8 @@ public class FloorRunController : MonoBehaviour
             FloorMapRoom room = candidateRooms[roomIndex];
             candidateRooms.RemoveAt(roomIndex);
             int side = _random.Next(0, 2) == 0 ? -1 : 1;
-            float z = (float)(_random.NextDouble() * 24f - 12f);
-            Vector3 position = room.transform.position + new Vector3(side * 27f, 9.5f, z);
+            float z = (float)(_random.NextDouble() * 120f - 60f);
+            Vector3 position = room.transform.position + new Vector3(side * 53f, 13.2f, z);
             CreatePickup(position, RandomItem());
         }
     }
