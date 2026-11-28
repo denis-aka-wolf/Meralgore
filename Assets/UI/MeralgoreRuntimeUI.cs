@@ -45,7 +45,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private float _nextRefreshTime;
     private static Sprite _whiteSprite;
 
-    private static readonly Color PanelColor = new Color32(16, 18, 18, 224);
+    private static readonly Color PanelColor = new Color32(16, 18, 18, 0);
     private static readonly Color PanelSoft = new Color32(25, 29, 28, 205);
     private static readonly Color LineColor = new Color32(69, 74, 71, 220);
     private static readonly Color MutedText = new Color32(139, 151, 145, 255);
