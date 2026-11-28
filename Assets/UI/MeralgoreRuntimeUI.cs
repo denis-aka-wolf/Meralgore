@@ -215,7 +215,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.referenceResolution = new Vector2(1600f, 900f);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
         scaler.referencePixelsPerUnit = 100f;
@@ -339,7 +339,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(76f, 76f);
+        rect.sizeDelta = new Vector2(92f, 92f);
 
         MeralgoreHUDReticleGraphic graphic = reticleObject.GetComponent<MeralgoreHUDReticleGraphic>();
         graphic.color = new Color32(211, 221, 215, 210);
@@ -378,9 +378,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
             new Vector2(18f, -43f), new Vector2(250f, 18f), 9f, MutedText,
             TMPro.TextAlignmentOptions.Left).text = "● CURRENT   ○ AVAILABLE   · UNKNOWN";
 
-        const float mapWidth = 246f;
-        const float mapHeight = 250f;
-        float mapTop = -70f;
+        const float mapWidth = 270f;
+        const float mapHeight = 270f;
+        float mapTop = -76f;
         var positions = new Dictionary<int, Vector2>();
         int maxRow = 1;
         foreach (FloorMapNode node in nodes)
@@ -405,7 +405,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
                 Vector2 delta = to - from;
                 GameObject line = CreatePanel(frame.transform, $"Route_{node.Id}_{connectedId}",
                     new Vector2(0f, 1f), new Vector2(0f, 1f), (from + to) * 0.5f,
-                    new Vector2(delta.magnitude, 1.5f), new Color(Teal.r, Teal.g, Teal.b, 0.42f));
+                    new Vector2(delta.magnitude, 2f), new Color(Teal.r, Teal.g, Teal.b, 0.42f));
                 line.GetComponent<RectTransform>().rotation =
                     Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
             }
@@ -414,9 +414,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         foreach (FloorMapNode node in nodes)
         {
             GameObject marker = CreatePanel(frame.transform, $"Node_{node.Id}",
-                new Vector2(0f, 1f), new Vector2(0f, 1f), positions[node.Id], new Vector2(10f, 10f), GetRoomColor(node.Type));
+                new Vector2(0f, 1f), new Vector2(0f, 1f), positions[node.Id], new Vector2(13f, 13f), GetRoomColor(node.Type));
             marker.GetComponent<RectTransform>().sizeDelta = node.Type == FloorRoomType.Boss
-                ? new Vector2(15f, 15f) : new Vector2(9f, 9f);
+                ? new Vector2(19f, 19f) : new Vector2(12f, 12f);
             _roomMarkers[node.Id] = marker.GetComponent<Image>();
         }
 
@@ -543,7 +543,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         TMPro.TextMeshProUGUI text = textObject.GetComponent<TMPro.TextMeshProUGUI>();
         text.font = _font;
-        text.fontSize = fontSize;
+        text.fontSize = Mathf.Max(fontSize * 1.08f, 11f);
         text.color = color;
         text.alignment = alignment;
         text.fontStyle = fontSize >= 20f ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
