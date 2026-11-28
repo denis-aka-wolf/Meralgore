@@ -14,8 +14,9 @@ public class FloorMapRoom : MonoBehaviour
         Node = node;
         var trigger = gameObject.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
-        trigger.center = new Vector3(0f, 36f, 0f);
-        trigger.size = new Vector3(146f, 76f, 126f);
+        // Encounter zones are broad invisible volumes over the shared combat floor.
+        trigger.center = new Vector3(0f, 20f, 0f);
+        trigger.size = new Vector3(184f, 50f, 174f);
     }
 
     public void SetRunController(FloorRunController runController)
