@@ -228,7 +228,7 @@ public class FloorRunController : MonoBehaviour
         var health = enemyObject.AddComponent<Health>();
         var enemy = enemyObject.AddComponent<MeralgoreEnemyController>();
         CreateEnemyVisual(enemyObject.transform, boss);
-        enemy.Configure(this, boss);
+        enemy.Configure(this, boss, _random.Next(7, 12));
 
         health.Damaged += OnEnemyDamaged;
         health.Died += OnEnemyDied;
