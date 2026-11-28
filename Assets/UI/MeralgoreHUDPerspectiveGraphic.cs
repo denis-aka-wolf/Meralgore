@@ -34,6 +34,7 @@ public sealed class MeralgoreHUDPerspectiveGraphic : MaskableGraphic
         const float gapWidth = 2.2f;
         float previousX = 0f;
         float previousY = 0f;
+        bool previousVisible = false;
 
         for (int i = 0; i <= segments; i++)
         {
@@ -45,11 +46,12 @@ public sealed class MeralgoreHUDPerspectiveGraphic : MaskableGraphic
             float y = upper ? yMagnitude : -yMagnitude;
 
             bool inGap = i % gapModulo < gapWidth || Mathf.Abs(normalized) < 0.13f;
-            if (i > 0 && !inGap)
+            if (previousVisible && !inGap)
                 AddLine(vh, new Vector2(previousX, previousY), new Vector2(x, y), LineWidth);
 
             previousX = x;
             previousY = y;
+            previousVisible = !inGap;
         }
     }
 
