@@ -77,14 +77,31 @@ public class PlayerInputController : MonoBehaviour
     void OnKick(InputAction.CallbackContext obj) => kick.PerformKick();
 
     // атака
-    void OnStartAttack(InputAction.CallbackContext obj) => weaponSwitcher.weapon.StartAttack();
-    void OnEndAttack(InputAction.CallbackContext obj) => weaponSwitcher.weapon.EndAttack();
+    void OnStartAttack(InputAction.CallbackContext obj)
+    {
+        if (weaponSwitcher != null && weaponSwitcher.weapon != null)
+            weaponSwitcher.weapon.StartAttack();
+    }
+
+    void OnEndAttack(InputAction.CallbackContext obj)
+    {
+        if (weaponSwitcher != null && weaponSwitcher.weapon != null)
+            weaponSwitcher.weapon.EndAttack();
+    }
 
     // альтернативная атака
-    void OnStartAltAttack(InputAction.CallbackContext obj) => weaponSwitcher.weapon.StartAltAttack();
+    void OnStartAltAttack(InputAction.CallbackContext obj)
+    {
+        if (weaponSwitcher != null && weaponSwitcher.weapon != null)
+            weaponSwitcher.weapon.StartAltAttack();
+    }
 
     // перезарядка
-    void OnReload(InputAction.CallbackContext obj) => weaponSwitcher.weapon.Reload();
+    void OnReload(InputAction.CallbackContext obj)
+    {
+        if (weaponSwitcher != null && weaponSwitcher.weapon != null)
+            weaponSwitcher.weapon.Reload();
+    }
 
     // смена оружия
     void WeaponSlot1(InputAction.CallbackContext obj) => weaponSwitcher.ChangeWeapon(0);

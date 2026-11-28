@@ -1,31 +1,45 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class WeaponSwitcher : MonoBehaviour
 {
     public GameObject currentWeapon;
     public Weapon weapon;
-    
-    void Start()
+
+    private readonly Weapon[] _slots = new Weapon[2];
+    public int CurrentSlot { get; private set; }
+
+    private void Start()
     {
-        ChangeWeapon(0); //активация первого оружия по индексу
+        Weapon startingWeapon = null;
+        foreach (Transform child in transform)
+        {
+            Weapon childWeapon = child.GetComponent<Weapon>();
+            child.gameObject.SetActive(false);
+            if (childWeapon is Revolver)
+                startingWeapon = childWeapon;
+        }
+
+        if (startingWeapon == null && transform.childCount > 0)
+            startingWeapon = transform.GetChild(0).GetComponent<Weapon>();
+
+        _slots[0] = startingWeapon;
+        ChangeWeapon(0);
     }
 
     public void ChangeWeapon(int weaponNum)
     {
-        if (weaponNum < transform.childCount)
-        {
-            int i = 0;
-            foreach (Transform weapon in transform)
-            {
-                // активность оружия зависит от того, совпадает ли его индекс с выбранным номером оружия
-                weapon.gameObject.SetActive(i == weaponNum);
-                i++;
-            }
+        if (weaponNum < 0 || weaponNum >= _slots.Length || _slots[weaponNum] == null)
+            return;
 
-            currentWeapon = transform.GetChild(weaponNum).gameObject;
-            weapon = currentWeapon.GetComponent<Weapon>();
-        }
+        foreach (Transform child in transform)
+            child.gameObject.SetActive(false);
+
+        weapon = _slots[weaponNum];
+        currentWeapon = weapon.gameObject;
+        currentWeapon.SetActive(true);
+        CurrentSlot = weaponNum;
     }
 
+    public Weapon GetWeaponForSlot(int slot) =>
+        slot >= 0 && slot < _slots.Length ? _slots[slot] : null;
 }

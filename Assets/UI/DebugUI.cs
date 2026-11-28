@@ -25,6 +25,16 @@ public class DebugUI : MonoBehaviour
         playerController = player.GetComponent<CharacterController>();
     }
 
+    public void SetDebugVisible(bool visible)
+    {
+        if (speedDebug != null)
+            speedDebug.gameObject.SetActive(visible);
+        if (stateDebug != null)
+            stateDebug.gameObject.SetActive(visible);
+        if (attackDebug != null)
+            attackDebug.gameObject.SetActive(visible);
+    }
+
     // Update is called once per frame
     void Update()
     {

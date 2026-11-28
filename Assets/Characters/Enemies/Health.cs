@@ -1,33 +1,61 @@
-using Unity.VisualScripting;
+using System;
 using UnityEngine;
 
 public class Health : MonoBehaviour
 {
-    AudioSource audioSource;
-    [SerializeField] AudioClip deathSound;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private float health = 30f;
 
-    [SerializeField] float health;
+    private AudioSource _audioSource;
+    private bool _isDead;
 
-    void Start()
+    public static event Action<float> DamageDealt;
+    public event Action<Health> Died;
+    public float CurrentHealth => health;
+    public bool IsDead => _isDead;
+
+    private void Awake()
     {
-        audioSource = GetComponent<AudioSource>();
+        _audioSource = GetComponent<AudioSource>();
     }
+
+    public void SetHealth(float value)
+    {
+        health = Mathf.Max(1f, value);
+        _isDead = false;
+    }
+
     public void Damage(float damage)
-    { 
+    {
+        if (_isDead || damage <= 0f)
+            return;
+
         health -= damage;
+        DamageDealt?.Invoke(damage);
 
         if (health <= 0)
             Death();
     }
 
-    void Death()
+    private void Death()
     {
-        GetComponent<Collider>().enabled = false;
-        GetComponent<Renderer>().enabled = false;
+        _isDead = true;
+        Died?.Invoke(this);
 
-        audioSource.pitch = Random.Range(0.95f, 1.05f);
-        audioSource.PlayOneShot(deathSound);
-        
-        Destroy(gameObject, deathSound.length);
+        foreach (Collider collider in GetComponentsInChildren<Collider>())
+            collider.enabled = false;
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
+            renderer.enabled = false;
+
+        if (_audioSource != null && deathSound != null)
+        {
+            _audioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+            _audioSource.PlayOneShot(deathSound);
+            Destroy(gameObject, deathSound.length);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 }
