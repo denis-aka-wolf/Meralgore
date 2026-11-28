@@ -311,7 +311,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
             "COMBAT OPERATING SYSTEM";
 
         CreateAccent(frame.transform, "BrandSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(438f, -0f), new Vector2(1f, 58f), LineColor);
+            new Vector2(438f, -29f), new Vector2(1f, 58f), LineColor);
 
         CreateText(frame.transform, "SectorCaption", new Vector2(0f, 0.5f), new Vector2(474f, 17f),
             new Vector2(300f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
@@ -325,7 +325,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
             new Vector2(790f, -27f), new Vector2(3f, 8f), Amber);
 
         CreateAccent(frame.transform, "CoordinateSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(930f, -0f), new Vector2(1f, 58f), LineColor);
+            new Vector2(930f, -29f), new Vector2(1f, 58f), LineColor);
         CreateText(frame.transform, "CoordinateCaption", new Vector2(0f, 0.5f), new Vector2(962f, 17f),
             new Vector2(420f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
             "OPERATOR POSITION  /  LOCAL METERS";
@@ -337,7 +337,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
             new Vector2(962f, -31f), new Vector2(350f, 1f), LineColor);
 
         CreateAccent(frame.transform, "StatusSeparator", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
-            new Vector2(-360f, 0f), new Vector2(1f, 58f), LineColor);
+            new Vector2(-360f, -29f), new Vector2(1f, 58f), LineColor);
         CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-20f, 10f),
             new Vector2(300f, 22f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
             "●  SYSTEM LINK  /  STABLE";
@@ -354,7 +354,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private void BuildOperatorPanel(Transform parent)
     {
         GameObject frame = CreateFrame(parent, "OperatorPanel", new Vector2(0f, 1f),
-            new Vector2(0f, 1f), new Vector2(34f, -112f), new Vector2(300f, 166f), true);
+            new Vector2(0f, 1f), new Vector2(34f, -146f), new Vector2(300f, 166f), true);
         AddSectionTitle(frame.transform, "OPERATOR STATUS", "01 / VITALS");
         _healthValue = CreateText(frame.transform, "HealthValue", new Vector2(0f, 1f),
             new Vector2(18f, -54f), new Vector2(90f, 48f), 34f, MeralgorePalette.Text,
@@ -430,7 +430,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private void BuildNavigationPanel(Transform parent, IReadOnlyList<FloorMapNode> nodes)
     {
         GameObject frame = CreateFrame(parent, "NavigationPanel", new Vector2(1f, 1f),
-            new Vector2(1f, 1f), new Vector2(-34f, -112f), new Vector2(292f, 356f), true);
+            new Vector2(1f, 1f), new Vector2(-34f, -146f), new Vector2(292f, 356f), true);
         AddSectionTitle(frame.transform, "NAVIGATION", "03 / FLOOR GRAPH");
         CreateText(frame.transform, "MapLegend", new Vector2(0f, 1f),
             new Vector2(18f, -43f), new Vector2(250f, 18f), 9f, MutedText,
