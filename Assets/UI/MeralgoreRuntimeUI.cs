@@ -572,7 +572,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         }
 
         MeralgoreHUDFrameGraphic graphic = frame.GetComponent<MeralgoreHUDFrameGraphic>();
-        graphic.SetPalette(PanelColor, LineColor, showAccent ? Teal : new Color32(92, 103, 98, 150));
+        // Frame graphic is intentionally empty: modules are composed from independent HUD elements.
         graphic.raycastTarget = false;
         return frame;
     }
@@ -639,7 +639,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         text.outlineColor = MeralgorePalette.Shadow;
         text.outlineWidth = 0.12f;
         text.raycastTarget = false;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
         text.overflowMode = TMPro.TextOverflowModes.Ellipsis;
         return text;
     }
