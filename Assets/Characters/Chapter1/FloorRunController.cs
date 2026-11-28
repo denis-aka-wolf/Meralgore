@@ -137,7 +137,7 @@ public class FloorRunController : MonoBehaviour
         switch (room.Node.Type)
         {
             case FloorRoomType.Combat:
-                StartEncounter(room, _random.Next(2, 5), false);
+                StartEncounter(room, _random.Next(14, 21), false);
                 break;
             case FloorRoomType.Boss:
                 Log("Арена босса. Победите его, чтобы завершить забег.");
@@ -196,8 +196,8 @@ public class FloorRunController : MonoBehaviour
 
         for (int i = 0; i < enemyCount; i++)
         {
-            float x = (float)(_random.NextDouble() * 28f - 14f);
-            float z = (float)(_random.NextDouble() * 22f - 11f);
+            float x = (float)(_random.NextDouble() * 112f - 56f);
+            float z = (float)(_random.NextDouble() * 92f - 46f);
             Vector3 position = room.transform.position + new Vector3(x, 0f, z);
             SpawnEnemy(position, room, boss, i + 1);
         }
