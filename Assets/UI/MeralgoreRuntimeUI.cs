@@ -328,27 +328,20 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
     private void BuildTacticalReticle(Transform parent)
     {
-        GameObject tactical = new GameObject("TacticalReticle", typeof(RectTransform));
-        tactical.transform.SetParent(parent, false);
-        RectTransform root = tactical.GetComponent<RectTransform>();
-        root.anchorMin = new Vector2(0.5f, 0.5f);
-        root.anchorMax = new Vector2(0.5f, 0.5f);
-        root.pivot = new Vector2(0.5f, 0.5f);
-        root.anchoredPosition = Vector2.zero;
-        root.sizeDelta = new Vector2(84f, 84f);
+        GameObject reticleObject = new GameObject("TacticalReticle", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(MeralgoreHUDReticleGraphic));
+        reticleObject.transform.SetParent(parent, false);
 
-        Color reticle = new Color32(211, 221, 215, 190);
-        CreateAccent(root, "Top", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -5f), new Vector2(1f, 13f), reticle);
-        CreateAccent(root, "Bottom", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-            new Vector2(0f, 5f), new Vector2(1f, 13f), reticle);
-        CreateAccent(root, "Left", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(5f, 0f), new Vector2(13f, 1f), reticle);
-        CreateAccent(root, "Right", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
-            new Vector2(-5f, 0f), new Vector2(13f, 1f), reticle);
-        GameObject center = CreatePanel(root, "CenterDot", new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3f, 3f), Amber);
-        center.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+        RectTransform rect = reticleObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(76f, 76f);
+
+        MeralgoreHUDReticleGraphic graphic = reticleObject.GetComponent<MeralgoreHUDReticleGraphic>();
+        graphic.color = new Color32(211, 221, 215, 210);
+        graphic.raycastTarget = false;
 
         CreateText(parent, "TacticalMode", new Vector2(0.5f, 0.5f),
             new Vector2(0f, -58f), new Vector2(300f, 18f), 10f, MutedText,
