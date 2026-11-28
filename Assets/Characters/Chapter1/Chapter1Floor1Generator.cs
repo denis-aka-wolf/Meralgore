@@ -152,7 +152,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Transform room, FloorMapNode node, Material structure, Material props, System.Random random)
     {
         // Keep the central combat lane readable and mostly unobstructed.
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 6; i++)
         {
             float x = (float)(random.NextDouble() * 112f - 56f);
             float z = (float)(random.NextDouble() * 92f - 46f);
@@ -239,7 +239,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Transform room, FloorMapNode node, Material walls, Material structure, System.Random random)
     {
         // Dense outer skyline: multiple layers of colossal structures, well beyond the arena.
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < 8; i++)
         {
             float angle = i * 12f + random.Next(-7, 8);
             float radius = random.Next(185, 390);
@@ -257,7 +257,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Colossal vertical shafts and diagonal braces fill the gaps between distant towers.
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 3; i++)
         {
             float angle = i * 30f + random.Next(-10, 11);
             float radius = random.Next(230, 360);
@@ -272,7 +272,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Long elevated bridges cross the view at several depths and heights.
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < 3; i++)
         {
             float angle = i * 20f + random.Next(-8, 9);
             float radius = random.Next(210, 330);
@@ -288,7 +288,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         }
 
         // Overhead megastructure: layered ceiling trusses, suspended decks and machinery.
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < 3; i++)
         {
             float z = -105f + i * 35f;
             GameObject beam = CreateCube(room, $"Overhead_Primary_Truss_{i:00}",
@@ -297,7 +297,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
             DisableCollider(beam);
         }
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 4; i++)
         {
             float x = random.Next(-105, 106);
             float z = random.Next(-105, 106);
@@ -346,8 +346,8 @@ public class Chapter1Floor1Generator : MonoBehaviour
             FloorMapNode connected = nodes[connectedId];
             float dx = (connected.Lane - node.Lane) * LaneSpacing;
             float dz = (connected.Row - node.Row) * RowSpacing;
-            float xTime = Mathf.Abs(dx) < 0.001f ? float.PositiveInfinity : 35f / Mathf.Abs(dx);
-            float zTime = Mathf.Abs(dz) < 0.001f ? float.PositiveInfinity : 26f / Mathf.Abs(dz);
+            float xTime = Mathf.Abs(dx) < 0.001f ? float.PositiveInfinity : (LocationWidth * 0.5f) / Mathf.Abs(dx);
+            float zTime = Mathf.Abs(dz) < 0.001f ? float.PositiveInfinity : (LocationDepth * 0.5f) / Mathf.Abs(dz);
 
             if (xTime < zTime)
             {
