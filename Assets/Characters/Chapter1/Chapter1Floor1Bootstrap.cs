@@ -3,10 +3,10 @@ using UnityEngine;
 public class Chapter1Floor1Bootstrap : MonoBehaviour
 {
     [SerializeField] private Transform playerSpawn;
-    [SerializeField] private float fallLimitY = -8f;
-    [SerializeField] private float sideLimit = 115f;
-    [SerializeField] private float backLimitZ = -35f;
-    [SerializeField] private float forwardLimitZ = 710f;
+    [SerializeField] private float fallLimitY = -20f;
+    [SerializeField] private float sideLimit = 310f;
+    [SerializeField] private float backLimitZ = -110f;
+    [SerializeField] private float forwardLimitZ = 1450f;
 
     private Vector3 _spawnPosition;
     private Quaternion _spawnRotation;
