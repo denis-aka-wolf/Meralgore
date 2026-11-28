@@ -59,7 +59,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         foreach (FloorMapNode node in nodes)
             _nodesById[node.Id] = node;
 
-        _font = TMPro.TMP_Settings.defaultFontAsset;
+        _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/TMP_AnkaCoder-C87-r");
+        if (_font == null)
+            _font = TMPro.TMP_Settings.defaultFontAsset;
         if (_font == null)
             _font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (_font == null)
@@ -328,27 +330,20 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
     private void BuildTacticalReticle(Transform parent)
     {
-        GameObject tactical = new GameObject("TacticalReticle", typeof(RectTransform));
-        tactical.transform.SetParent(parent, false);
-        RectTransform root = tactical.GetComponent<RectTransform>();
-        root.anchorMin = new Vector2(0.5f, 0.5f);
-        root.anchorMax = new Vector2(0.5f, 0.5f);
-        root.pivot = new Vector2(0.5f, 0.5f);
-        root.anchoredPosition = Vector2.zero;
-        root.sizeDelta = new Vector2(84f, 84f);
+        GameObject reticleObject = new GameObject("TacticalReticle", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(MeralgoreHUDReticleGraphic));
+        reticleObject.transform.SetParent(parent, false);
 
-        Color reticle = new Color32(211, 221, 215, 190);
-        CreateAccent(root, "Top", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -5f), new Vector2(1f, 13f), reticle);
-        CreateAccent(root, "Bottom", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-            new Vector2(0f, 5f), new Vector2(1f, 13f), reticle);
-        CreateAccent(root, "Left", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(5f, 0f), new Vector2(13f, 1f), reticle);
-        CreateAccent(root, "Right", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
-            new Vector2(-5f, 0f), new Vector2(13f, 1f), reticle);
-        GameObject center = CreatePanel(root, "CenterDot", new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3f, 3f), Amber);
-        center.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+        RectTransform rect = reticleObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(76f, 76f);
+
+        MeralgoreHUDReticleGraphic graphic = reticleObject.GetComponent<MeralgoreHUDReticleGraphic>();
+        graphic.color = new Color32(211, 221, 215, 210);
+        graphic.raycastTarget = false;
 
         CreateText(parent, "TacticalMode", new Vector2(0.5f, 0.5f),
             new Vector2(0f, -58f), new Vector2(300f, 18f), 10f, MutedText,
@@ -477,22 +472,20 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private GameObject CreateFrame(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
         Vector2 position, Vector2 size, bool showAccent)
     {
-        GameObject frame = CreatePanel(parent, name, anchorMin, anchorMax, position, size, PanelColor);
-        RectTransform rect = frame.GetComponent<RectTransform>();
-        rect.pivot = anchorMin == new Vector2(1f, 0f) || anchorMin == new Vector2(1f, 1f)
-            ? new Vector2(1f, anchorMin.y) : new Vector2(0f, anchorMin.y);
+        GameObject frame = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer),
+            typeof(MeralgoreHUDFrameGraphic));
+        frame.transform.SetParent(parent, false);
 
-        CreateAccent(frame.transform, "TopLine", new Vector2(0f, 1f), new Vector2(1f, 1f),
-            new Vector2(0f, -1f), new Vector2(0f, 1.5f), LineColor);
-        CreateAccent(frame.transform, "BottomLine", new Vector2(0f, 0f), new Vector2(1f, 0f),
-            new Vector2(0f, 1f), new Vector2(0f, 1f), LineColor);
-        CreateAccent(frame.transform, "LeftLine", new Vector2(0f, 0f), new Vector2(0f, 1f),
-            new Vector2(1f, 0f), new Vector2(1f, 0f), LineColor);
-        CreateAccent(frame.transform, "RightLine", new Vector2(1f, 0f), new Vector2(1f, 1f),
-            new Vector2(-1f, 0f), new Vector2(1f, 0f), LineColor);
-        if (showAccent)
-            CreateAccent(frame.transform, "SignalEdge", new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(12f, -1f), new Vector2(32f, 2f), Teal);
+        RectTransform rect = frame.GetComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = new Vector2(anchorMin.x, anchorMin.y);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        MeralgoreHUDFrameGraphic graphic = frame.GetComponent<MeralgoreHUDFrameGraphic>();
+        graphic.SetPalette(PanelColor, LineColor, showAccent ? Teal : new Color32(92, 103, 98, 150));
+        graphic.raycastTarget = false;
         return frame;
     }
 
@@ -553,8 +546,8 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         text.fontSize = fontSize;
         text.color = color;
         text.alignment = alignment;
-        text.fontStyle = TMPro.FontStyles.Bold;
-        text.characterSpacing = fontSize <= 12f ? 0.8f : 0.35f;
+        text.fontStyle = fontSize >= 20f ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
+        text.characterSpacing = fontSize <= 12f ? 1.05f : fontSize <= 17f ? 0.55f : 0.15f;
         text.outlineColor = MeralgorePalette.Shadow;
         text.outlineWidth = 0.12f;
         text.raycastTarget = false;
