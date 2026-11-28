@@ -8,7 +8,7 @@ METALGORE — шутер-рогалик с быстрым боем, накапл
 
 1. Установите Unity Editor **6000.5.6f1** (актуальная версия проекта указана в `ProjectSettings/ProjectVersion.txt`).
 2. Откройте папку репозитория через Unity Hub.
-3. В Unity откройте `Assets/Scenes/test.unity`.
+3. В Unity откройте `Assets/Scenes/Chapter1_Floor1.unity`.
 4. Нажмите **Play**.
 
 ## Управление в прототипе
