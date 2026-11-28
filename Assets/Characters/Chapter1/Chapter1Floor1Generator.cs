@@ -173,7 +173,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
         {
             float x = side * 53f;
             CreateCube(room, side < 0 ? "West_Transit_Deck" : "East_Transit_Deck",
-                new Vector3(x, 12f, 0f), new Vector3(28f, 1.2f, 174f), structure);
+                new Vector3(x, 12f, 0f), new Vector3(28f, 1.2f, 190f), structure);
             CreateRampBetween(room, side < 0 ? "West_Access_Ramp" : "East_Access_Ramp",
                 new Vector3(side * 13f, 0.4f, -72f),
                 new Vector3(side * 53f, 12f, -18f), 18f, structure);
