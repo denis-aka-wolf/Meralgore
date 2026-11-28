@@ -119,7 +119,6 @@ public class FloorRunController : MonoBehaviour
             RestartRun();
         }
 
-        _ui?.Refresh();
     }
 
     public void EnterRoom(FloorMapRoom room)
