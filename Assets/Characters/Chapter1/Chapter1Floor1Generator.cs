@@ -8,11 +8,11 @@ public class Chapter1Floor1Generator : MonoBehaviour
     [SerializeField] private bool randomizeSeedEachRun = true;
     [SerializeField] private bool generateOnAwake = true;
 
-    private const float LocationWidth = 70f;
-    private const float LocationDepth = 52f;
-    private const float LaneSpacing = 84f;
-    private const float RowSpacing = 72f;
-    private const float DoorWidth = 14f;
+    private const float LocationWidth = 150f;
+    private const float LocationDepth = 130f;
+    private const float LaneSpacing = 190f;
+    private const float RowSpacing = 180f;
+    private const float DoorWidth = 28f;
 
     private readonly List<Material> _materials = new List<Material>();
     private readonly List<FloorMapRoom> _rooms = new List<FloorMapRoom>();
@@ -86,7 +86,7 @@ public class Chapter1Floor1Generator : MonoBehaviour
 
         GameObject spawn = new GameObject("PlayerSpawn");
         spawn.transform.SetParent(roomObjects[0], false);
-        spawn.transform.localPosition = new Vector3(0f, 0f, -14f);
+        spawn.transform.localPosition = new Vector3(0f, 0f, -48f);
         PlayerSpawn = spawn.transform;
 
         FloorRunController runController = GetComponent<FloorRunController>();
@@ -135,16 +135,115 @@ public class Chapter1Floor1Generator : MonoBehaviour
         Material props,
         System.Random random)
     {
-        CreateCube(room, "Ground_Slab", new Vector3(0f, -0.5f, 0f),
+        // A territory is an open combat district, not an enclosed room.
+        CreateCube(room, "Territory_Ground", new Vector3(0f, -0.5f, 0f),
             new Vector3(LocationWidth, 1f, LocationDepth), floor);
         CreateCube(room, "Route_Inlay", new Vector3(0f, 0.08f, 0f),
-            new Vector3(5f, 0.15f, LocationDepth - 6f), route);
+            new Vector3(7f, 0.12f, LocationDepth - 8f), route);
 
-        List<Opening> openings = GetOpenings(node, nodes);
-        CreateWalls(room, openings, walls);
-        CreateSupportColumns(room, structure);
-        CreateUpperLevel(room, structure);
-        CreateRoomDetails(room, node, props, random);
+        CreateOpenTerritoryArchitecture(room, node, structure, props, random);
+        CreateMegastructureBackdrop(room, node, walls, structure, random);
+        CreateTerritoryIdentity(room, node, route, signal: props);
+    }
+
+    private void CreateOpenTerritoryArchitecture(
+        Transform room, FloorMapNode node, Material structure, Material props, System.Random random)
+    {
+        // Keep the central combat lane readable and mostly unobstructed.
+        for (int i = 0; i < 10; i++)
+        {
+            float x = (float)(random.NextDouble() * 112f - 56f);
+            float z = (float)(random.NextDouble() * 92f - 46f);
+            if (Mathf.Abs(x) < 17f && Mathf.Abs(z) < 20f) continue;
+            float width = random.Next(5, 13);
+            float height = random.Next(3, 10);
+            CreateCube(room, $"Combat_Cover_{i:00}", new Vector3(x, height * 0.5f, z),
+                new Vector3(width, height, random.Next(4, 10)), props);
+        }
+
+        // Two elevated side routes, with long ramps rather than tiny room balconies.
+        for (int side = -1; side <= 1; side += 2)
+        {
+            float x = side * 53f;
+            CreateCube(room, side < 0 ? "West_Transit_Deck" : "East_Transit_Deck",
+                new Vector3(x, 12f, 0f), new Vector3(24f, 1.2f, 104f), structure);
+            CreateCube(room, side < 0 ? "West_Deck_Spine" : "East_Deck_Spine",
+                new Vector3(side * 67f, 14f, 0f), new Vector3(2f, 4f, 108f), props);
+
+            GameObject ramp = CreateCube(room, side < 0 ? "West_Access_Ramp" : "East_Access_Ramp",
+                new Vector3(side * 34f, 5.7f, -37f), new Vector3(13f, 1f, 42f), structure);
+            ramp.transform.localRotation = Quaternion.Euler(-16f, 0f, 0f);
+        }
+
+        // Broken cross-bridges create alternate movement lines and sightline changes.
+        CreateCube(room, "Cross_Transit_Bridge_A", new Vector3(0f, 18f, 34f),
+            new Vector3(76f, 1.1f, 10f), structure);
+        CreateCube(room, "Cross_Transit_Bridge_B", new Vector3(0f, 9f, -53f),
+            new Vector3(52f, 1.1f, 8f), structure);
+
+        // Massive supports rise well above the playable deck.
+        for (int side = -1; side <= 1; side += 2)
+        {
+            for (int depth = -1; depth <= 1; depth += 2)
+            {
+                float x = side * 69f;
+                float z = depth * 57f;
+                CreateCube(room, $"Megastructure_Pylon_{side}_{depth}",
+                    new Vector3(x, 34f, z), new Vector3(7f, 68f, 7f), structure);
+                CreateCube(room, $"Pylon_Collar_{side}_{depth}",
+                    new Vector3(x, 19f, z), new Vector3(13f, 3f, 13f), props);
+            }
+        }
+
+        // Suspended machinery overhead. Deliberately discontinuous: never cap the whole arena.
+        CreateCube(room, "Overhead_Machinery_A", new Vector3(-34f, 48f, 5f),
+            new Vector3(38f, 5f, 16f), structure);
+        CreateCube(room, "Overhead_Machinery_B", new Vector3(42f, 57f, -28f),
+            new Vector3(30f, 4f, 22f), props);
+
+        if (node.Type == FloorRoomType.Boss)
+        {
+            CreateCube(room, "Boss_Engagement_Ring", new Vector3(0f, 0.18f, 0f),
+                new Vector3(54f, 0.16f, 54f), props);
+            CreateCube(room, "Boss_Reactor_Spine", new Vector3(0f, 23f, 47f),
+                new Vector3(34f, 46f, 9f), structure);
+        }
+    }
+
+    private void CreateMegastructureBackdrop(
+        Transform room, FloorMapNode node, Material walls, Material structure, System.Random random)
+    {
+        // Local skyline silhouettes give every territory its own distant industrial profile.
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = i * 30f + random.Next(-9, 10);
+            float radius = random.Next(105, 175);
+            float radians = angle * Mathf.Deg2Rad;
+            float x = Mathf.Cos(radians) * radius;
+            float z = Mathf.Sin(radians) * radius;
+            float height = random.Next(75, 190);
+            float width = random.Next(12, 30);
+            GameObject tower = CreateCube(room, $"Distant_Structure_{i:00}",
+                new Vector3(x, height * 0.5f, z),
+                new Vector3(width, height, width * random.Next(1, 3)), i % 3 == 0 ? walls : structure);
+            tower.transform.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
+        }
+
+        // Huge suspended spans visible above and beyond the playable battlefield.
+        CreateCube(room, "Distant_Horizontal_Span",
+            new Vector3(random.Next(-35, 36), 105f, 145f),
+            new Vector3(190f, 12f, 18f), walls);
+        CreateCube(room, "Distant_Vertical_Shaft",
+            new Vector3(random.Next(-35, 36), 90f, -145f),
+            new Vector3(24f, 180f, 24f), structure);
+    }
+
+    private void CreateTerritoryIdentity(Transform room, FloorMapNode node, Material route, Material signal)
+    {
+        // A simple monumental marker makes the district legible without enclosing it.
+        CreateCube(room, "District_Signature_Pillar",
+            new Vector3(0f, 16f, 62f), new Vector3(8f, 32f, 5f),
+            node.Type == FloorRoomType.Boss ? signal : route);
     }
 
     private static List<Opening> GetOpenings(FloorMapNode node, List<FloorMapNode> nodes)
@@ -307,7 +406,10 @@ public class Chapter1Floor1Generator : MonoBehaviour
         float distance = delta.magnitude;
         Vector3 direction = delta.normalized;
         Vector3 midpoint = (from + to) * 0.5f;
-        float connectorLength = Mathf.Max(14f, distance - 84f);
+        float edgeDistance = Mathf.Min(
+            Mathf.Abs(direction.x) < 0.001f ? float.PositiveInfinity : (LocationWidth * 0.5f) / Mathf.Abs(direction.x),
+            Mathf.Abs(direction.z) < 0.001f ? float.PositiveInfinity : (LocationDepth * 0.5f) / Mathf.Abs(direction.z));
+        float connectorLength = Mathf.Max(8f, distance - edgeDistance * 2f);
 
         GameObject link = new GameObject($"Link_{fromNode.Id + 1:00}_{toNode.Id + 1:00}");
         link.transform.SetParent(transform, false);
@@ -315,10 +417,10 @@ public class Chapter1Floor1Generator : MonoBehaviour
         link.transform.localRotation = Quaternion.LookRotation(direction, Vector3.up);
 
         CreateCube(link.transform, "Walkway", Vector3.zero,
-            new Vector3(DoorWidth, 0.25f, connectorLength), routeMaterial);
+            new Vector3(DoorWidth, 0.6f, connectorLength), routeMaterial);
 
         GameObject gateObject = CreateCube(link.transform, "Combat_Gate",
-            new Vector3(0f, 4f, 0f), new Vector3(DoorWidth, 8f, 0.8f), signalMaterial);
+            new Vector3(0f, 5f, 0f), new Vector3(DoorWidth, 10f, 1.2f), signalMaterial);
         gateObject.SetActive(false);
         FloorMapLink gate = gateObject.AddComponent<FloorMapLink>();
         rooms[fromNode.Id].AddLink(gate);
