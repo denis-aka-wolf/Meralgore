@@ -30,6 +30,8 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private TMPro.TextMeshProUGUI _currencyValue;
     private TMPro.TextMeshProUGUI _roomValue;
     private TMPro.TextMeshProUGUI _sectorValue;
+    private TMPro.TextMeshProUGUI _coordinateValue;
+    private TMPro.TextMeshProUGUI _seedValue;
     private TMPro.TextMeshProUGUI _weaponName;
     private TMPro.TextMeshProUGUI _ammoValue;
     private TMPro.TextMeshProUGUI _weaponSlots;
@@ -162,7 +164,14 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         _currencyValue.text = _playerState.Currency.ToString("000");
         _roomValue.text = _runController.GetRoomLabel();
-        _sectorValue.text = $"CHAPTER 01  /  FLOOR 01     //     SEED {_seed}";
+        _sectorValue.text = "SECTOR 01  //  FLOOR 01";
+        _seedValue.text = $"RUN SEED  //  {_seed:000000}";
+
+        if (_coordinateValue != null && _runController.PlayerTransform != null)
+        {
+            Vector3 position = _runController.PlayerTransform.position;
+            _coordinateValue.text = $"X {position.x:+000.0;-000.0;000.0}    Y {position.y:+000.0;-000.0;000.0}    Z {position.z:+000.0;-000.0;000.0}";
+        }
 
         WeaponSwitcher weaponSwitcher = _runController.WeaponSwitcher;
         Weapon weapon = weaponSwitcher != null ? weaponSwitcher.weapon : null;
@@ -215,7 +224,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.referenceResolution = new Vector2(1600f, 900f);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
         scaler.referencePixelsPerUnit = 100f;
@@ -279,24 +288,73 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private void BuildHeader(Transform parent)
     {
         GameObject frame = CreateFrame(parent, "StructureHeader", new Vector2(0f, 1f),
-            new Vector2(0f, 1f), new Vector2(34f, -28f), new Vector2(1852f, 58f), false);
-        CreateText(frame.transform, "Brand", new Vector2(0f, 0.5f), new Vector2(18f, 0f),
-            new Vector2(360f, 28f), 17f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left).text =
-            "METALGORE  <color=#4D7A78>//</color>  COS";
-        _sectorValue = CreateText(frame.transform, "Sector", new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(780f, 24f), 13f, MutedText, TMPro.TextAlignmentOptions.Center);
-        _sectorValue.text = "CHAPTER 01  /  FLOOR 01";
-        CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-18f, 0f),
-            new Vector2(320f, 24f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
+            new Vector2(0f, 1f), new Vector2(34f, -24f), new Vector2(1852f, 104f), false);
+
+        GameObject emblem = new GameObject("MeralgoreEmblem", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(MeralgoreHUDLogoGraphic));
+        emblem.transform.SetParent(frame.transform, false);
+        RectTransform emblemRect = emblem.GetComponent<RectTransform>();
+        emblemRect.anchorMin = new Vector2(0f, 0.5f);
+        emblemRect.anchorMax = new Vector2(0f, 0.5f);
+        emblemRect.pivot = new Vector2(0f, 0.5f);
+        emblemRect.anchoredPosition = new Vector2(20f, 0f);
+        emblemRect.sizeDelta = new Vector2(48f, 54f);
+        MeralgoreHUDLogoGraphic emblemGraphic = emblem.GetComponent<MeralgoreHUDLogoGraphic>();
+        emblemGraphic.color = MeralgorePalette.MainRoute;
+        emblemGraphic.raycastTarget = false;
+
+        CreateText(frame.transform, "Brand", new Vector2(0f, 0.5f), new Vector2(82f, 13f),
+            new Vector2(330f, 34f), 25f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left).text =
+            "METALGORE";
+        CreateText(frame.transform, "BrandSubtitle", new Vector2(0f, 0.5f), new Vector2(84f, -17f),
+            new Vector2(320f, 18f), 11f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "COMBAT OPERATING SYSTEM";
+
+        CreateAccent(frame.transform, "BrandSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(438f, -29f), new Vector2(1f, 58f), LineColor);
+
+        CreateText(frame.transform, "SectorCaption", new Vector2(0f, 0.5f), new Vector2(474f, 17f),
+            new Vector2(300f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "STRUCTURE INDEX  /  ACTIVE ROUTE";
+        _sectorValue = CreateText(frame.transform, "Sector", new Vector2(0f, 0.5f), new Vector2(474f, -9f),
+            new Vector2(390f, 30f), 20f, MeralgorePalette.Text, TMPro.TextAlignmentOptions.Left);
+        _sectorValue.text = "SECTOR 01  //  FLOOR 01";
+        CreateAccent(frame.transform, "SectorRule", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(474f, -31f), new Vector2(300f, 1f), Teal);
+        CreateAccent(frame.transform, "SectorRuleTickA", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(790f, -27f), new Vector2(3f, 8f), Amber);
+
+        CreateAccent(frame.transform, "CoordinateSeparator", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(930f, -29f), new Vector2(1f, 58f), LineColor);
+        CreateText(frame.transform, "CoordinateCaption", new Vector2(0f, 0.5f), new Vector2(962f, 17f),
+            new Vector2(420f, 16f), 10f, MutedText, TMPro.TextAlignmentOptions.Left).text =
+            "OPERATOR POSITION  /  LOCAL METERS";
+        _coordinateValue = CreateText(frame.transform, "Coordinates", new Vector2(0f, 0.5f),
+            new Vector2(962f, -9f), new Vector2(470f, 28f), 15f, MeralgorePalette.Text,
+            TMPro.TextAlignmentOptions.Left);
+        _coordinateValue.text = "X 000.0    Y 000.0    Z 000.0";
+        CreateAccent(frame.transform, "CoordinateRule", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(962f, -31f), new Vector2(350f, 1f), LineColor);
+
+        CreateAccent(frame.transform, "StatusSeparator", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(-360f, -29f), new Vector2(1f, 58f), LineColor);
+        CreateText(frame.transform, "SystemStatus", new Vector2(1f, 0.5f), new Vector2(-20f, 10f),
+            new Vector2(300f, 22f), 13f, Teal, TMPro.TextAlignmentOptions.Right).text =
             "●  SYSTEM LINK  /  STABLE";
+        _seedValue = CreateText(frame.transform, "RunSeed", new Vector2(1f, 0.5f), new Vector2(-20f, -17f),
+            new Vector2(300f, 18f), 10f, MutedText, TMPro.TextAlignmentOptions.Right);
+        _seedValue.text = $"RUN SEED  //  {_seed:000000}";
+
         CreateAccent(frame.transform, "HeaderAccent", new Vector2(0f, 0f), new Vector2(0f, 0f),
-            new Vector2(0f, 0f), new Vector2(84f, 2f), Amber);
+            new Vector2(0f, 0f), new Vector2(120f, 2f), Amber);
+        CreateAccent(frame.transform, "HeaderTrace", new Vector2(0f, 0f), new Vector2(0f, 0f),
+            new Vector2(470f, 0f), new Vector2(420f, 1f), new Color(Teal.r, Teal.g, Teal.b, 0.48f));
     }
 
     private void BuildOperatorPanel(Transform parent)
     {
         GameObject frame = CreateFrame(parent, "OperatorPanel", new Vector2(0f, 1f),
-            new Vector2(0f, 1f), new Vector2(34f, -112f), new Vector2(300f, 166f), true);
+            new Vector2(0f, 1f), new Vector2(34f, -146f), new Vector2(300f, 166f), true);
         AddSectionTitle(frame.transform, "OPERATOR STATUS", "01 / VITALS");
         _healthValue = CreateText(frame.transform, "HealthValue", new Vector2(0f, 1f),
             new Vector2(18f, -54f), new Vector2(90f, 48f), 34f, MeralgorePalette.Text,
@@ -339,7 +397,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(76f, 76f);
+        rect.sizeDelta = new Vector2(92f, 92f);
 
         MeralgoreHUDReticleGraphic graphic = reticleObject.GetComponent<MeralgoreHUDReticleGraphic>();
         graphic.color = new Color32(211, 221, 215, 210);
@@ -372,15 +430,15 @@ public class MeralgoreRuntimeUI : MonoBehaviour
     private void BuildNavigationPanel(Transform parent, IReadOnlyList<FloorMapNode> nodes)
     {
         GameObject frame = CreateFrame(parent, "NavigationPanel", new Vector2(1f, 1f),
-            new Vector2(1f, 1f), new Vector2(-34f, -112f), new Vector2(292f, 356f), true);
+            new Vector2(1f, 1f), new Vector2(-34f, -146f), new Vector2(292f, 356f), true);
         AddSectionTitle(frame.transform, "NAVIGATION", "03 / FLOOR GRAPH");
         CreateText(frame.transform, "MapLegend", new Vector2(0f, 1f),
             new Vector2(18f, -43f), new Vector2(250f, 18f), 9f, MutedText,
             TMPro.TextAlignmentOptions.Left).text = "● CURRENT   ○ AVAILABLE   · UNKNOWN";
 
-        const float mapWidth = 246f;
-        const float mapHeight = 250f;
-        float mapTop = -70f;
+        const float mapWidth = 270f;
+        const float mapHeight = 270f;
+        float mapTop = -76f;
         var positions = new Dictionary<int, Vector2>();
         int maxRow = 1;
         foreach (FloorMapNode node in nodes)
@@ -405,7 +463,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
                 Vector2 delta = to - from;
                 GameObject line = CreatePanel(frame.transform, $"Route_{node.Id}_{connectedId}",
                     new Vector2(0f, 1f), new Vector2(0f, 1f), (from + to) * 0.5f,
-                    new Vector2(delta.magnitude, 1.5f), new Color(Teal.r, Teal.g, Teal.b, 0.42f));
+                    new Vector2(delta.magnitude, 2f), new Color(Teal.r, Teal.g, Teal.b, 0.42f));
                 line.GetComponent<RectTransform>().rotation =
                     Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
             }
@@ -414,9 +472,9 @@ public class MeralgoreRuntimeUI : MonoBehaviour
         foreach (FloorMapNode node in nodes)
         {
             GameObject marker = CreatePanel(frame.transform, $"Node_{node.Id}",
-                new Vector2(0f, 1f), new Vector2(0f, 1f), positions[node.Id], new Vector2(10f, 10f), GetRoomColor(node.Type));
+                new Vector2(0f, 1f), new Vector2(0f, 1f), positions[node.Id], new Vector2(13f, 13f), GetRoomColor(node.Type));
             marker.GetComponent<RectTransform>().sizeDelta = node.Type == FloorRoomType.Boss
-                ? new Vector2(15f, 15f) : new Vector2(9f, 9f);
+                ? new Vector2(19f, 19f) : new Vector2(12f, 12f);
             _roomMarkers[node.Id] = marker.GetComponent<Image>();
         }
 
@@ -543,7 +601,7 @@ public class MeralgoreRuntimeUI : MonoBehaviour
 
         TMPro.TextMeshProUGUI text = textObject.GetComponent<TMPro.TextMeshProUGUI>();
         text.font = _font;
-        text.fontSize = fontSize;
+        text.fontSize = Mathf.Max(fontSize * 1.08f, 11f);
         text.color = color;
         text.alignment = alignment;
         text.fontStyle = fontSize >= 20f ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
